@@ -3,23 +3,34 @@
 @tailwind utilities;
 
 :root {
-  --bg: #0b1120;
-  --panel: #111a2e;
+  --bg: #f4f5f7;
+  --panel: #ffffff;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #e7e9ee;
+  --navy: #1e3a8a;
 }
 
 html,
 body {
   background: var(--bg);
-  color: #e2e8f0;
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
 }
 
-/* thin scrollbar for the leads table */
 .scroll-thin::-webkit-scrollbar {
   height: 8px;
   width: 8px;
 }
 .scroll-thin::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #cbd5e1;
   border-radius: 8px;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* number tabular alignment in tables */
+.tnum {
+  font-variant-numeric: tabular-nums;
 }

@@ -40,7 +40,13 @@ export function dateTime(iso: string): string {
 export const platformLabel: Record<string, string> = {
   facebook: "Facebook",
   instagram: "Instagram",
-  audience_network: "Audience Network",
-  messenger: "Messenger",
+  whatsapp: "WhatsApp",
+  email: "E-mail",
+  google: "Google",
+  organic: "Orgânico",
   unknown: "Outros",
 };
+
+export function titleCase(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}

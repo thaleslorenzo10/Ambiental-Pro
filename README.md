@@ -1,64 +1,73 @@
-# Dashboard de Leads — Lançamento
+# Dashboard de Captação — Imersão GIS 2026 (Ambiental Pro)
 
-Dashboard de acompanhamento de leads e investimento para lançamentos, alimentado
-pela **API do Meta** (Marketing/Graph API — campanhas de captação e Lead Ads).
+Dashboard de acompanhamento de leads, investimento e CPL do lançamento, no padrão
+Lorenzo Media: tema claro, multi-canal, com radar de tracking, pacing de budget,
+funil de captação e leads reais.
 
 > Rota principal: **`/dashboard-pos`** (`/` redireciona pra ela).
 
+## Fontes de dados
+
+- **Meta Marketing (Graph) API** → investimento, impressões, cliques, CTR, CPM,
+  campanhas (com split HOT/COLD via tag no nome) e leads do pixel. Filtra apenas as
+  campanhas cujo nome contém a tag do lançamento (`[IMERSÃOGIS] [JUL26]`).
+- **Google Sheets** → leads reais da página de captura (aba
+  `[IMERSÃO GIS][JUL26] Trackeamento de Lançamento`), lidos via CSV. Definem os
+  "leads reais", o CPL real, a quebra por origem (utm_source) e o radar de tracking.
+
+Sem credenciais, o dashboard renderiza com um **snapshot dos números reais do Meta**
+(pulados da conta) + leads estimados, então sempre funciona.
+
 ## Stack
 
-- Next.js 15 (App Router) + React 19
-- Tailwind CSS
-- Recharts (gráficos)
+Next.js 15 (App Router) · React 19 · Tailwind CSS · Recharts.
 
 ## Rodando localmente
 
 ```bash
 npm install
-cp .env.example .env.local   # preencha as credenciais do Meta (opcional)
-npm run dev
+cp .env.example .env.local   # preencha Meta + Google Sheet
+npm run dev                  # http://localhost:3000
 ```
 
-Abra http://localhost:3000 — sem credenciais, a dashboard carrega com **dados de
-exemplo** (mock determinístico), então ela sempre renderiza. Ao configurar o
-`.env.local`, os números passam a vir ao vivo da conta de anúncios.
+## Variáveis de ambiente
 
-## Configuração da API do Meta
+Veja `.env.example`. Principais:
 
-| Variável              | Descrição                                                        |
-| --------------------- | ---------------------------------------------------------------- |
-| `META_ACCESS_TOKEN`   | Token longo (system user / page) com `ads_read` + `leads_retrieval` |
-| `META_AD_ACCOUNT_ID`  | ID da conta de anúncios, com prefixo `act_`                      |
-| `META_GRAPH_VERSION`  | Versão da Graph API (padrão `v21.0`)                             |
-| `META_ACCOUNT_NAME`   | Nome exibido no cabeçalho                                        |
-| `META_LEAD_GOAL`      | Meta de leads do lançamento (barra de progresso)                |
+| Variável             | Descrição                                                     |
+| -------------------- | ------------------------------------------------------------- |
+| `META_ACCESS_TOKEN`  | Token (system user) com `ads_read`                            |
+| `META_AD_ACCOUNT_ID` | `673524229757641`                                             |
+| `META_CAMPAIGN_TAG`  | `[IMERSÃOGIS] [JUL26]` — tag presente no nome das campanhas   |
+| `GOOGLE_SHEET_ID`    | ID da planilha de leads                                       |
+| `GOOGLE_SHEET_TAB`   | Nome da aba dos leads (`[IMERSÃO GIS][JUL26] Trackeamento...`) |
+| `LAUNCH_LEAD_GOAL`   | Meta de leads (barra de progresso)                            |
+| `LAUNCH_BUDGET_TOTAL`| Budget total do lançamento (pacing)                           |
 
-## De onde vêm os dados
-
-- **KPIs / gráficos por dia**: `/{account}/insights` com `time_increment=1`
-  (gasto, impressões, alcance, cliques e ações de lead → CPL).
-- **Por campanha**: mesmo endpoint com `level=campaign`.
-- **Por origem** (Instagram/Facebook/…): `breakdowns=publisher_platform`.
-- **Últimos leads**: `/{form}/leads` para cada formulário de Lead Ads.
-
-Toda a integração fica isolada em `src/lib/meta/`. A UI só consome o tipo
-normalizado `DashboardData` (`src/lib/meta/types.ts`), nunca o payload cru do Meta.
+> A planilha precisa estar acessível ("qualquer um com o link" ou publicada na web)
+> para o app conseguir ler o CSV.
 
 ## Estrutura
 
 ```
 src/
-  app/
-    dashboard-pos/page.tsx   # página principal (server component)
-    page.tsx                 # redirect -> /dashboard-pos
-  components/                # KpiCard, Charts, tabelas, etc.
+  app/dashboard-pos/page.tsx   # página principal (server component)
+  components/                  # Header, KpiStrip, TrackingRadar, Charts, tabelas...
   lib/
-    data.ts                  # getDashboardData() — Meta ao vivo ou mock
-    format.ts                # formatação pt-BR (R$, datas, %)
-    meta/                     # client.ts, mock.ts, types.ts
+    data.ts                    # compõe snapshot + Meta ao vivo + leads da planilha
+    format.ts                  # formatação pt-BR (R$, datas, %)
+    meta/                       # client (Graph API), snapshot (dados reais), types
+    sheets/                     # leitor de leads do Google Sheets
 ```
+
+## Seções do dashboard
+
+Header do lançamento · KPI strip (Investido, Leads Reais, CPL Real, Meta) · Radar de
+tracking (pixel x planilha) · Budget & pacing · Investimento acumulado (real x ideal)
+· Comparativo de canais (Meta/TikTok/Google) · Funil de captação · Evolução diária
+(investido/leads/CPL) · Campanhas Meta (HOT/COLD) · Leads por origem · Últimos leads.
 
 ## Deploy (Vercel)
 
-Importe o repo na Vercel, configure as variáveis de ambiente do Meta e faça o
-deploy. A página revalida a cada 5 minutos (`revalidate = 300`).
+Importe o repo, configure as variáveis de ambiente e faça o deploy. A página revalida
+a cada 5 minutos (`revalidate = 300`).

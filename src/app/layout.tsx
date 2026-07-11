@@ -5,8 +5,9 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Dashboard de Leads — Lançamento",
-  description: "Acompanhamento de leads e investimento do lançamento (Meta Ads).",
+  title: "Dashboard de Captação — Imersão GIS · Ambiental Pro",
+  description:
+    "Acompanhamento de leads, investimento e CPL do lançamento (Meta Ads + planilha).",
 };
 
 export default function RootLayout({

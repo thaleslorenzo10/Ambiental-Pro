@@ -1,70 +1,136 @@
-// Domain model for the launch lead-tracking dashboard.
-// Shapes are normalized so the UI never touches the raw Meta Graph API payload.
+// Domain model for the launch tracking dashboard (Imersão GIS / Ambiental Pro).
+// The UI only ever touches these normalized shapes, never a raw API payload.
 
-export type Platform = "facebook" | "instagram" | "audience_network" | "messenger" | "unknown";
+export type Channel = "meta" | "tiktok" | "google";
+export type Temperature = "HOT" | "COLD" | "—";
+export type Platform =
+  | "instagram"
+  | "facebook"
+  | "whatsapp"
+  | "email"
+  | "google"
+  | "organic"
+  | "unknown";
 
 export interface DailyMetric {
-  /** ISO date, e.g. "2026-07-11" */
-  date: string;
+  date: string; // ISO date
+  spend: number;
   leads: number;
+  cpl: number;
+  cumulativeSpend: number;
+  cumulativeLeads: number;
+}
+
+export interface CampaignRow {
+  id: string;
+  name: string;
+  temperature: Temperature;
   spend: number;
   impressions: number;
-  reach: number;
   clicks: number;
-  /** cost per lead for the day (spend / leads) */
+  ctr: number;
+  leads: number; // pixel leads
   cpl: number;
 }
 
-export interface CampaignPerformance {
-  id: string;
-  name: string;
-  status: string;
-  leads: number;
+export interface ChannelStats {
+  channel: Channel;
+  label: string;
+  active: boolean;
   spend: number;
+  leads: number;
+  cpl: number;
   impressions: number;
   clicks: number;
-  cpl: number;
   ctr: number;
 }
 
-export interface PlatformBreakdown {
-  platform: Platform;
-  leads: number;
+export interface TemperatureSplit {
+  temperature: Temperature;
   spend: number;
+  leads: number;
+  cpl: number;
 }
 
-export interface Lead {
+export interface Funnel {
+  impressions: number;
+  clicks: number;
+  landingPageViews: number;
+  leadsPixel: number;
+  ctr: number; // %
+  cpm: number;
+  lpvPerClick: number; // %
+  leadPerLpv: number; // %
+}
+
+export interface Budget {
+  total: number;
+  invested: number;
+  remaining: number;
+  burnedPct: number;
+  daysElapsed: number;
+  daysTotal: number;
+  paceReal: number; // R$/day so far
+  paceGoal: number; // R$/day needed to spend the whole budget
+}
+
+export interface Tracking {
+  metaPixelLeads: number;
+  sheetLeads: number;
+  diff: number; // sheet - pixel
+  diffPct: number;
+  ok: boolean;
+}
+
+export interface LeadRow {
   id: string;
   name: string;
   email: string;
   phone: string;
-  campaign: string;
+  source: string; // utm_source
+  medium: string; // utm_medium
+  campaign: string; // utm_campaign
   platform: Platform;
-  createdTime: string; // ISO datetime
+  createdTime: string;
+}
+
+export interface SourceBreakdown {
+  source: string;
+  platform: Platform;
+  leads: number;
 }
 
 export interface DashboardTotals {
-  leads: number;
   spend: number;
+  leadsReal: number;
+  cplReal: number;
   impressions: number;
-  reach: number;
   clicks: number;
-  cpl: number;
   ctr: number;
+  cpm: number;
   leadsToday: number;
   leadsYesterday: number;
 }
 
 export interface DashboardData {
-  /** whether the numbers came from the live Meta API or the mock generator */
   source: "meta" | "mock";
-  accountName: string;
-  goal: number;
+  currency: string; // "BRL"
+  client: string;
+  launch: string;
+  phase: string;
+  status: string;
   periodStart: string;
   periodEnd: string;
+  goalLeads: number;
   totals: DashboardTotals;
+  budget: Budget;
+  tracking: Tracking;
+  channels: ChannelStats[];
+  temperatures: TemperatureSplit[];
+  funnel: Funnel;
   daily: DailyMetric[];
-  campaigns: CampaignPerformance[];
-  platforms: PlatformBreakdown[];
-  recentLeads: Lead[];
+  campaigns: CampaignRow[];
+  sources: SourceBreakdown[];
+  recentLeads: LeadRow[];
+  leadsFromSheet: boolean;
 }
