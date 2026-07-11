@@ -34,7 +34,7 @@ const REAL_CAMPAIGNS: {
 const TOTAL_SPEND = 12370.23;
 const TOTAL_IMPRESSIONS = 1326101;
 const TOTAL_CLICKS = 15399;
-const TARGET_LEADS = 2585; // estimated real leads (sheet is source of truth)
+const TARGET_LEADS = 2880; // estimated real leads (sheet is source of truth); ~CPL R$4.30
 
 function seeded(seed: number) {
   let s = seed;
@@ -52,9 +52,15 @@ const SOURCES: { source: string; medium: string; platform: Platform; weight: num
   { source: "organico", medium: "organic", platform: "organic", weight: 0.07 },
 ];
 
-export function buildSnapshot(goalLeads = 5000, budgetTotal = 25000): DashboardData {
+export function buildSnapshot(
+  goalLeads = 8000,
+  budgetTotal = 32000,
+  cplTarget = 4,
+  salesGoal = 200,
+): DashboardData {
   const rand = seeded(2607);
-  const days = 21;
+  // Captação: 29/06 → 20/07 (22 dias). "Hoje" no contexto = 11/07 (13º dia).
+  const days = 13;
   const today = new Date("2026-07-11T12:00:00");
 
   // Distribute the real totals across a ramping daily curve.
@@ -175,7 +181,7 @@ export function buildSnapshot(goalLeads = 5000, budgetTotal = 25000): DashboardD
     };
   });
 
-  const daysTotal = 28;
+  const daysTotal = 22; // 29/06 → 20/07
   const daysElapsed = days;
   const invested = TOTAL_SPEND;
   return {
@@ -188,6 +194,8 @@ export function buildSnapshot(goalLeads = 5000, budgetTotal = 25000): DashboardD
     periodStart: daily[0].date,
     periodEnd: daily[daily.length - 1].date,
     goalLeads,
+    cplTarget,
+    salesGoal,
     totals: {
       spend: TOTAL_SPEND,
       leadsReal,

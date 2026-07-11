@@ -47,6 +47,7 @@ function Stat({
 export function KpiStrip({ data }: { data: DashboardData }) {
   const t = data.totals;
   const goalPct = data.goalLeads ? (t.leadsReal / data.goalLeads) * 100 : 0;
+  const cplGood = t.cplReal > 0 && t.cplReal <= data.cplTarget;
   return (
     <div className="grid grid-cols-2 divide-slate-100 rounded-2xl border border-[#e7e9ee] bg-white shadow-sm sm:grid-cols-4 sm:divide-x">
       <Stat label="Investido" value={money(t.spend)} sub="multi-canal" accent="#0f172a" />
@@ -56,7 +57,12 @@ export function KpiStrip({ data }: { data: DashboardData }) {
         sub={data.leadsFromSheet ? "planilha (real)" : "estimado"}
         accent="#1e3a8a"
       />
-      <Stat label="CPL Real" value={money2(t.cplReal)} sub="R$ / lead" accent="#059669" />
+      <Stat
+        label="CPL Real"
+        value={money2(t.cplReal)}
+        sub={`alvo ${money2(data.cplTarget)}`}
+        accent={cplGood ? "#059669" : "#dc2626"}
+      />
       <Stat
         label={`Meta ${num(data.goalLeads)}`}
         value={pct(goalPct)}

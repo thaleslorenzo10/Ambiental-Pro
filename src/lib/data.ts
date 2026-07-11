@@ -145,9 +145,11 @@ function overlaySheet(base: DashboardData, leads: LeadRow[]): DashboardData {
 
 /** Single entry point the UI uses. Real Meta + Sheet data when configured; snapshot otherwise. */
 export async function getDashboardData(): Promise<DashboardData> {
-  const goal = num(process.env.LAUNCH_LEAD_GOAL, 5000);
-  const budgetTotal = num(process.env.LAUNCH_BUDGET_TOTAL, 25000);
-  let data = buildSnapshot(goal, budgetTotal);
+  const goal = num(process.env.LAUNCH_LEAD_GOAL, 8000);
+  const budgetTotal = num(process.env.LAUNCH_BUDGET_TOTAL, 32000);
+  const cplTarget = num(process.env.LAUNCH_CPL_TARGET, 4);
+  const salesGoal = num(process.env.LAUNCH_SALES_GOAL, 200);
+  let data = buildSnapshot(goal, budgetTotal, cplTarget, salesGoal);
 
   if (isMetaConfigured()) {
     try {

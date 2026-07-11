@@ -122,6 +122,8 @@ export interface DashboardData {
   periodStart: string;
   periodEnd: string;
   goalLeads: number;
+  cplTarget: number;
+  salesGoal: number;
   totals: DashboardTotals;
   budget: Budget;
   tracking: Tracking;
