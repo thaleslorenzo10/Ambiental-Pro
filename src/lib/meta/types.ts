@@ -100,6 +100,53 @@ export interface SourceBreakdown {
   leads: number;
 }
 
+export interface SecondaryMetrics {
+  ctr: number;
+  cpm: number;
+  frequency: number;
+  landingPageViews: number;
+  linkClicks: number;
+  costPerClick: number;
+}
+
+export interface Projection {
+  daysRemaining: number;
+  leadsCurrent: number;
+  leadsProjected: number;
+  leadsGoal: number;
+  spendCurrent: number;
+  spendProjected: number;
+  budgetTotal: number;
+  onPace: boolean;
+}
+
+export interface PlacementBreakdown {
+  placement: string;
+  spend: number;
+  leads: number;
+  cpl: number;
+}
+
+export interface CountryBreakdown {
+  country: string;
+  spend: number;
+  leads: number;
+  cpl: number;
+  pctSpend: number;
+}
+
+export interface AdEntityRow {
+  id: string;
+  name: string;
+  campaign?: string;
+  temperature: Temperature;
+  spend: number;
+  impressions: number;
+  ctr: number;
+  leads: number;
+  cpl: number;
+}
+
 export interface DashboardTotals {
   spend: number;
   leadsReal: number;
@@ -130,8 +177,14 @@ export interface DashboardData {
   channels: ChannelStats[];
   temperatures: TemperatureSplit[];
   funnel: Funnel;
+  secondary: SecondaryMetrics;
+  projection: Projection;
   daily: DailyMetric[];
   campaigns: CampaignRow[];
+  adsets: AdEntityRow[];
+  ads: AdEntityRow[];
+  placements: PlacementBreakdown[];
+  countries: CountryBreakdown[];
   sources: SourceBreakdown[];
   recentLeads: LeadRow[];
   leadsFromSheet: boolean;

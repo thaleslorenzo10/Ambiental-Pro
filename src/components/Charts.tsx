@@ -4,15 +4,18 @@ import {
   Area,
   Bar,
   CartesianGrid,
+  Cell,
   ComposedChart,
   Legend,
   Line,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import type { Budget, DailyMetric } from "@/lib/meta/types";
+import type { Budget, CountryBreakdown, DailyMetric } from "@/lib/meta/types";
 import { compact, money, money2, num, shortDate } from "@/lib/format";
 
 const AXIS = { stroke: "#94a3b8", fontSize: 11 };
@@ -143,6 +146,33 @@ export function CumulativeInvestment({
           dot={false}
         />
       </ComposedChart>
+    </ResponsiveContainer>
+  );
+}
+
+const COUNTRY_COLORS = ["#1e3a8a", "#f59e0b", "#38bdf8", "#a78bfa", "#94a3b8"];
+
+export function CountryDonut({ data }: { data: CountryBreakdown[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={220}>
+      <PieChart>
+        <Pie
+          data={data}
+          dataKey="spend"
+          nameKey="country"
+          innerRadius={55}
+          outerRadius={90}
+          paddingAngle={2}
+        >
+          {data.map((_, i) => (
+            <Cell key={i} fill={COUNTRY_COLORS[i % COUNTRY_COLORS.length]} stroke="#fff" />
+          ))}
+        </Pie>
+        <Tooltip {...tooltip} formatter={(v: number, n) => [money(v), n]} />
+        <Legend
+          formatter={(v) => <span style={{ color: "#475569", fontSize: 12 }}>{v}</span>}
+        />
+      </PieChart>
     </ResponsiveContainer>
   );
 }

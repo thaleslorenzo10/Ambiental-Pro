@@ -1,4 +1,5 @@
 import type {
+  AdEntityRow,
   CampaignRow,
   ChannelStats,
   DailyMetric,
@@ -184,6 +185,113 @@ export function buildSnapshot(
   const daysTotal = 22; // 29/06 → 20/07
   const daysElapsed = days;
   const invested = TOTAL_SPEND;
+
+  // Secondary metrics
+  const frequency = 2.4 + rand() * 0.5;
+  const secondary = {
+    ctr,
+    cpm,
+    frequency: +frequency.toFixed(2),
+    landingPageViews,
+    linkClicks: Math.round(TOTAL_CLICKS * 0.92),
+    costPerClick: +(TOTAL_SPEND / TOTAL_CLICKS).toFixed(2),
+  };
+
+  // Projection to end of captação, at current pace
+  const daysRemaining = Math.max(daysTotal - daysElapsed, 0);
+  const leadsPerDay = leadsReal / daysElapsed;
+  const leadsProjected = Math.round(leadsReal + leadsPerDay * daysRemaining);
+  const spendProjected = +(invested + (invested / daysElapsed) * daysRemaining).toFixed(2);
+  const projection = {
+    daysRemaining,
+    leadsCurrent: leadsReal,
+    leadsProjected,
+    leadsGoal: goalLeads,
+    spendCurrent: invested,
+    spendProjected,
+    budgetTotal,
+    onPace: leadsProjected >= goalLeads,
+  };
+
+  // Placement breakdown
+  const PLACEMENTS: { placement: string; w: number; cplMul: number }[] = [
+    { placement: "Feed", w: 0.34, cplMul: 1.0 },
+    { placement: "Stories", w: 0.24, cplMul: 0.9 },
+    { placement: "Reels", w: 0.26, cplMul: 0.85 },
+    { placement: "Explore", w: 0.1, cplMul: 1.15 },
+    { placement: "Outros", w: 0.06, cplMul: 1.3 },
+  ];
+  const placements = PLACEMENTS.map((p) => {
+    const spend = +(TOTAL_SPEND * p.w).toFixed(2);
+    const leads = Math.round((leadsReal * p.w) / p.cplMul);
+    return { placement: p.placement, spend, leads, cpl: leads ? +(spend / leads).toFixed(2) : 0 };
+  });
+
+  // Country breakdown
+  const COUNTRIES: { country: string; w: number }[] = [
+    { country: "Brasil", w: 0.93 },
+    { country: "Portugal", w: 0.035 },
+    { country: "Estados Unidos", w: 0.02 },
+    { country: "Outros", w: 0.015 },
+  ];
+  const countries = COUNTRIES.map((c) => {
+    const spend = +(TOTAL_SPEND * c.w).toFixed(2);
+    const leads = Math.round(leadsReal * c.w);
+    return {
+      country: c.country,
+      spend,
+      leads,
+      cpl: leads ? +(spend / leads).toFixed(2) : 0,
+      pctSpend: +(c.w * 100).toFixed(1),
+    };
+  });
+
+  // Adsets (2 per campaign) and Ads (2 per adset)
+  const ADSET_SUFFIX = ["Interesses", "Lookalike 1%", "Amplo", "Retargeting"];
+  const AD_SUFFIX = ["Vídeo VSL", "Imagem Depoimento", "Carrossel", "Reels Nativo"];
+  const adsets: AdEntityRow[] = [];
+  const ads: AdEntityRow[] = [];
+  for (const c of campaigns) {
+    const parts = [0.6, 0.4];
+    parts.forEach((frac, i) => {
+      const spend = +(c.spend * frac).toFixed(2);
+      const impressions = Math.round(c.impressions * frac);
+      const clicks = Math.round(c.clicks * frac);
+      const leads = Math.max(1, Math.round(c.leads * frac));
+      const asId = `${c.id}_as${i}`;
+      adsets.push({
+        id: asId,
+        name: `[${c.temperature}] ${ADSET_SUFFIX[(i + adsets.length) % ADSET_SUFFIX.length]}`,
+        campaign: c.name,
+        temperature: c.temperature,
+        spend,
+        impressions,
+        ctr: impressions ? +((clicks / impressions) * 100).toFixed(2) : 0,
+        leads,
+        cpl: +(spend / leads).toFixed(2),
+      });
+      [0.55, 0.45].forEach((f2, j) => {
+        const aSpend = +(spend * f2).toFixed(2);
+        const aImpr = Math.round(impressions * f2);
+        const aClk = Math.round(clicks * f2);
+        const aLeads = Math.max(1, Math.round(leads * f2));
+        ads.push({
+          id: `${asId}_ad${j}`,
+          name: `${AD_SUFFIX[(j + ads.length) % AD_SUFFIX.length]} — ${c.temperature}`,
+          campaign: c.name,
+          temperature: c.temperature,
+          spend: aSpend,
+          impressions: aImpr,
+          ctr: aImpr ? +((aClk / aImpr) * 100).toFixed(2) : 0,
+          leads: aLeads,
+          cpl: +(aSpend / aLeads).toFixed(2),
+        });
+      });
+    });
+  }
+  adsets.sort((a, b) => b.spend - a.spend);
+  ads.sort((a, b) => b.spend - a.spend);
+
   return {
     source: "mock",
     currency: "BRL",
@@ -227,8 +335,14 @@ export function buildSnapshot(
     channels,
     temperatures: [temps.HOT, temps.COLD],
     funnel,
+    secondary,
+    projection,
     daily,
     campaigns,
+    adsets,
+    ads,
+    placements,
+    countries,
     sources,
     recentLeads,
     leadsFromSheet: false,
