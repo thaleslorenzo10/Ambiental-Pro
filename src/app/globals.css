@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0b1120;
+  --panel: #111a2e;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: #e2e8f0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* thin scrollbar for the leads table */
+.scroll-thin::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 8px;
+}
