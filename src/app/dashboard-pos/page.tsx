@@ -107,7 +107,7 @@ export default async function DashboardPos({
       <section id="conjuntos" className="scroll-mt-16">
         <AdEntityTable
           title="Conjuntos — Meta"
-          hint="Ad sets das campanhas do lançamento"
+          hint="Públicos acumulados · ordenados por CPL real"
           rows={data.adsets}
           showCampaign
         />
@@ -118,7 +118,7 @@ export default async function DashboardPos({
         <CreativesToScale ads={data.ads} />
         <AdEntityTable
           title="Anúncios — Meta"
-          hint="Criativos ativos no lançamento"
+          hint="Criativos acumulados · ordenados por CPL real"
           rows={data.ads}
           showCampaign
         />

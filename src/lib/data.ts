@@ -58,6 +58,20 @@ function crossMatch(
   return best;
 }
 
+/** Sort for optimization: entities with real leads first (cheapest CPL real
+    on top), then entities without matched leads by spend. Degrades to spend
+    order when no sheet leads exist. */
+function byRealCpl<T extends { spend: number; realLeads?: number; realCpl?: number }>(
+  a: T,
+  b: T,
+): number {
+  const aHas = (a.realLeads ?? 0) > 0;
+  const bHas = (b.realLeads ?? 0) > 0;
+  if (aHas !== bHas) return aHas ? -1 : 1;
+  if (aHas && bHas) return (a.realCpl ?? 0) - (b.realCpl ?? 0);
+  return b.spend - a.spend;
+}
+
 /** Merge ad-entities that share the same name (e.g. "AD08" running in several
     campaigns) into a single accumulated row. */
 function aggregateByName(rows: AdEntityRow[]): AdEntityRow[] {
@@ -226,7 +240,10 @@ function overlayMeta(base: DashboardData, m: MetaMetrics): DashboardData {
   };
 }
 
-function sourceBreakdown(leads: LeadRow[]): SourceBreakdown[] {
+function sourceBreakdown(
+  leads: LeadRow[],
+  isPaid: (l: LeadRow) => boolean,
+): SourceBreakdown[] {
   const map = new Map<string, SourceBreakdown>();
   for (const l of leads) {
     const key = l.source || "—";
@@ -236,7 +253,7 @@ function sourceBreakdown(leads: LeadRow[]): SourceBreakdown[] {
         source: key,
         platform: l.platform,
         leads: 0,
-        paid: isPaidLead(l.source, l.medium),
+        paid: isPaid(l),
       } as SourceBreakdown);
     e.leads += 1;
     map.set(key, e);
@@ -310,8 +327,22 @@ function overlaySheet(base: DashboardData, leads: LeadRow[]): DashboardData {
     (l) => l.campaign,
   ]);
 
+  // A lead is PAID if any of its UTMs matches a Meta campaign/adset/ad name
+  // (the paid Meta traffic carries those names); ORGANIC otherwise. Falls back
+  // to the medium-based rule when nothing matches.
+  const metaNorms = [...base.campaigns, ...base.adsets, ...base.ads]
+    .map((e) => normName(e.name))
+    .filter((n) => n.length >= 5);
+  const leadPaid = (l: LeadRow): boolean => {
+    const vals = [l.campaign, l.term, l.content, l.medium, l.source]
+      .map(normName)
+      .filter((v) => v.length >= 4);
+    if (vals.some((v) => metaNorms.some((en) => nameMatch(en, v)))) return true;
+    return isPaidLead(l.source, l.medium);
+  };
+
   // Paid vs organic (cross Meta spend with sheet UTMs)
-  const paidLeads = leads.filter((l) => isPaidLead(l.source, l.medium)).length;
+  const paidLeads = leads.filter(leadPaid).length;
   const organicLeads = total - paidLeads;
   const paidOrganic = {
     paidLeads,
@@ -389,7 +420,7 @@ function overlaySheet(base: DashboardData, leads: LeadRow[]): DashboardData {
     campaigns,
     adsets,
     ads,
-    sources: sourceBreakdown(leads),
+    sources: sourceBreakdown(leads, leadPaid),
     paidOrganic,
     recentLeads: sorted.slice(0, 25),
     tracking: {
@@ -444,6 +475,11 @@ export async function getDashboardData(period?: string): Promise<DashboardData> 
   // Accumulate conjuntos (públicos) e anúncios repetidos por nome
   data.adsets = aggregateByName(data.adsets);
   data.ads = aggregateByName(data.ads);
+
+  // Ordena por CPL real (mais eficiente primeiro; sem leads no fim)
+  data.campaigns = [...data.campaigns].sort(byRealCpl);
+  data.adsets = [...data.adsets].sort(byRealCpl);
+  data.ads = [...data.ads].sort(byRealCpl);
 
   data.period = opt.key;
   return data;

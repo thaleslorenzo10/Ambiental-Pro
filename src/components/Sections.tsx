@@ -430,7 +430,8 @@ export function CampaignsTable({ data }: { data: DashboardData }) {
         </table>
       </div>
       <p className="mt-2 text-[11px] text-slate-400">
-        Leads reais = leads da planilha cruzados por UTM · CPL real = investido ÷ leads reais
+        Ordenado por CPL real (mais eficiente primeiro) · Leads reais = leads da planilha
+        cruzados por UTM · CPL real = investido ÷ leads reais
       </p>
     </Card>
   );
