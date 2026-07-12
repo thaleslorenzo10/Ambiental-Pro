@@ -37,27 +37,19 @@ const PAID_SOURCES = () =>
     "ig_ads",
   ]);
 
+// For this launch (Imersão GIS), the ONLY organic source is "email" — every
+// other source is paid media. Override the organic list via LEAD_ORGANIC_SOURCES.
 const ORGANIC_SOURCES = () =>
-  list(process.env.LEAD_ORGANIC_SOURCES, [
-    "whatsapp",
-    "wpp",
-    "email",
-    "e-mail",
-    "bio",
-    "organico",
-    "orgânico",
-    "organic",
-    "direct",
-    "indicacao",
-    "indicação",
-    "grupo",
-  ]);
+  list(process.env.LEAD_ORGANIC_SOURCES, ["email", "e-mail"]);
 
 export function isPaidLead(source = "", medium = ""): boolean {
   const s = source.toLowerCase();
   const m = medium.toLowerCase();
+  // organic only when the source is in the organic list (default: email)
   if (ORGANIC_SOURCES().some((x) => s.includes(x))) return false;
-  if (PAID_MEDIUMS().some((x) => m.includes(x))) return true;
-  if (PAID_SOURCES().some((x) => s.includes(x))) return true;
-  return false;
+  // explicit organic mediums also count as free
+  if (["organic", "organico", "orgânico", "referral", "direct"].some((x) => m.includes(x)))
+    return false;
+  // everything else is paid media
+  return true;
 }

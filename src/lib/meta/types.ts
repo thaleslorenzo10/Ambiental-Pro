@@ -175,6 +175,14 @@ export interface CountryBreakdown {
   pctSpend: number;
 }
 
+export interface DemographicBreakdown {
+  age: string; // ex: "25-34"
+  gender: "female" | "male" | "unknown";
+  spend: number;
+  leads: number;
+  cpl: number;
+}
+
 export interface AdEntityRow {
   id: string;
   name: string;

@@ -327,21 +327,10 @@ function overlaySheet(base: DashboardData, leads: LeadRow[]): DashboardData {
     (l) => l.campaign,
   ]);
 
-  // A lead is PAID if any of its UTMs matches a Meta campaign/adset/ad name
-  // (the paid Meta traffic carries those names); ORGANIC otherwise. Falls back
-  // to the medium-based rule when nothing matches.
-  const metaNorms = [...base.campaigns, ...base.adsets, ...base.ads]
-    .map((e) => normName(e.name))
-    .filter((n) => n.length >= 5);
-  const leadPaid = (l: LeadRow): boolean => {
-    const vals = [l.campaign, l.term, l.content, l.medium, l.source]
-      .map(normName)
-      .filter((v) => v.length >= 4);
-    if (vals.some((v) => metaNorms.some((en) => nameMatch(en, v)))) return true;
-    return isPaidLead(l.source, l.medium);
-  };
+  // Paid vs organic: organic only when utm_source is "email" (regra do
+  // lançamento); todo o resto é mídia paga. Ver src/lib/classify.ts.
+  const leadPaid = (l: LeadRow): boolean => isPaidLead(l.source, l.medium);
 
-  // Paid vs organic (cross Meta spend with sheet UTMs)
   const paidLeads = leads.filter(leadPaid).length;
   const organicLeads = total - paidLeads;
   const paidOrganic = {
