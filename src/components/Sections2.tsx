@@ -580,21 +580,28 @@ function MiniKpi({ label, value }: { label: string; value: string }) {
 /* --------------------- Creatives to scale / pause ------------------------- */
 
 export function CreativesToScale({ ads }: { ads: AdEntityRow[] }) {
-  const withLeads = ads.filter((a) => a.leads >= 3);
-  const byCpl = [...withLeads].sort((a, b) => a.cpl - b.cpl);
+  // prefer real CPL (sheet) when available, else pixel CPL
+  const metric = (a: AdEntityRow) => (a.realLeads ? (a.realCpl ?? 0) : a.cpl);
+  const leadsOf = (a: AdEntityRow) => a.realLeads ?? a.leads;
+  const withLeads = ads.filter((a) => leadsOf(a) >= 3 && metric(a) > 0);
+  const byCpl = [...withLeads].sort((a, b) => metric(a) - metric(b));
   const scale = byCpl.slice(0, 3);
-  const pause = [...withLeads].sort((a, b) => b.cpl - a.cpl).slice(0, 3);
+  const scaleIds = new Set(scale.map((a) => a.id));
+  const pause = [...withLeads]
+    .filter((a) => !scaleIds.has(a.id))
+    .sort((a, b) => metric(b) - metric(a))
+    .slice(0, 3);
 
   const Row = ({ a, good }: { a: AdEntityRow; good: boolean }) => (
     <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 bg-white px-3 py-2">
       <div className="min-w-0">
         <p className="truncate text-sm font-medium text-slate-800">{a.name}</p>
         <p className="truncate text-[11px] text-slate-400">
-          {num(a.leads)} leads · {money(a.spend)}
+          {num(leadsOf(a))} leads · {money(a.spend)}
         </p>
       </div>
       <span className={`shrink-0 text-sm font-bold tnum ${good ? "text-emerald-600" : "text-rose-600"}`}>
-        {money2(a.cpl)}
+        {money2(metric(a))}
       </span>
     </div>
   );
