@@ -31,6 +31,8 @@ export interface CampaignRow {
   ctr: number;
   leads: number; // pixel leads
   cpl: number;
+  realLeads?: number; // leads reais da planilha cruzados por UTM
+  realCpl?: number; // spend / realLeads
 }
 
 export interface ChannelStats {
@@ -90,6 +92,8 @@ export interface LeadRow {
   source: string; // utm_source
   medium: string; // utm_medium
   campaign: string; // utm_campaign
+  term: string; // utm_term
+  content: string; // utm_content
   platform: Platform;
   createdTime: string;
 }
@@ -181,6 +185,8 @@ export interface AdEntityRow {
   ctr: number;
   leads: number;
   cpl: number;
+  realLeads?: number;
+  realCpl?: number;
 }
 
 export interface DashboardTotals {

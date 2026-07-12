@@ -59,6 +59,8 @@ const DEFAULTS: Record<string, string[]> = {
   source: ["utm_source", "utm source", "source", "origem", "fonte"],
   medium: ["utm_medium", "utm medium", "medium", "meio", "midia", "mídia"],
   campaign: ["utm_campaign", "utm campaign", "campaign", "campanha"],
+  term: ["utm_term", "utm term", "term", "termo", "conjunto", "publico", "público", "adset"],
+  content: ["utm_content", "utm content", "content", "conteudo", "conteúdo", "anuncio", "anúncio", "criativo", "ad"],
 };
 
 function resolveIndex(headers: string[], key: string, override?: string): number {
@@ -117,6 +119,8 @@ export async function fetchSheetLeads(): Promise<LeadRow[]> {
     source: resolveIndex(headers, "source", process.env.SHEET_COL_SOURCE),
     medium: resolveIndex(headers, "medium", process.env.SHEET_COL_MEDIUM),
     campaign: resolveIndex(headers, "campaign", process.env.SHEET_COL_CAMPAIGN),
+    term: resolveIndex(headers, "term", process.env.SHEET_COL_TERM),
+    content: resolveIndex(headers, "content", process.env.SHEET_COL_CONTENT),
   };
   const at = (r: string[], i: number) => (i >= 0 ? (r[i] || "").trim() : "");
 
@@ -130,6 +134,8 @@ export async function fetchSheetLeads(): Promise<LeadRow[]> {
       source: source || "—",
       medium: at(r, idx.medium),
       campaign: at(r, idx.campaign) || "Página de captura",
+      term: at(r, idx.term),
+      content: at(r, idx.content),
       platform: platformFromSource(source),
       createdTime: parseDate(at(r, idx.date)),
     };

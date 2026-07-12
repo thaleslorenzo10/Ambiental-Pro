@@ -15,6 +15,61 @@ function num(v: string | undefined, fallback: number): number {
   return Number.isFinite(n) && v ? n : fallback;
 }
 
+/* --- UTM ↔ Meta entity name matching --------------------------------------
+   Crosses the sheet leads with Meta campaigns / adsets (públicos) / ads by
+   normalized name, so we get REAL leads and CPL per entity (not just pixel).  */
+
+function normName(s?: string): string {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function nameMatch(entityNorm: string, valNorm: string): boolean {
+  if (valNorm.length < 4 || entityNorm.length < 4) return false;
+  return entityNorm === valNorm || entityNorm.includes(valNorm) || valNorm.includes(entityNorm);
+}
+
+type LeadGetter = (l: LeadRow) => string;
+
+/** Real leads per entity. Uses `forced` field if given, else picks the UTM
+    field (among getters) that produces the most matches. */
+function crossMatch(
+  entities: { name: string }[],
+  leads: LeadRow[],
+  getters: LeadGetter[],
+): number[] {
+  const entityNorms = entities.map((e) => normName(e.name));
+  let best = entities.map(() => 0);
+  let bestTotal = -1;
+  for (const get of getters) {
+    const vals = leads.map((l) => normName(get(l))).filter((v) => v.length >= 4);
+    if (!vals.length) continue;
+    const counts = entityNorms.map((en) => vals.filter((v) => nameMatch(en, v)).length);
+    const total = counts.reduce((a, b) => a + b, 0);
+    if (total > bestTotal) {
+      bestTotal = total;
+      best = counts;
+    }
+  }
+  return best;
+}
+
+function withRealCpl<T extends { name: string; spend: number }>(
+  entities: T[],
+  leads: LeadRow[],
+  getters: LeadGetter[],
+): (T & { realLeads: number; realCpl: number })[] {
+  const counts = crossMatch(entities, leads, getters);
+  return entities.map((e, i) => ({
+    ...e,
+    realLeads: counts[i],
+    realCpl: counts[i] ? +(e.spend / counts[i]).toFixed(2) : 0,
+  }));
+}
+
 function overlayMeta(base: DashboardData, m: MetaMetrics): DashboardData {
   const leadsPixel = m.leadsPixel;
   // Rebuild the daily curve from Meta's real spend; leads are back-filled from
@@ -178,6 +233,25 @@ function overlaySheet(base: DashboardData, leads: LeadRow[]): DashboardData {
   const leadsPerDay = daysElapsed ? total / daysElapsed : 0;
   const leadsProjected = Math.round(total + leadsPerDay * daysRemaining);
 
+  // Cross UTMs with Meta entities → real leads and CPL per campaign/adset/ad
+  const campaigns = withRealCpl(base.campaigns, leads, [
+    (l) => l.campaign,
+    (l) => l.term,
+    (l) => l.content,
+    (l) => l.medium,
+  ]);
+  const adsets = withRealCpl(base.adsets, leads, [
+    (l) => l.term,
+    (l) => l.content,
+    (l) => l.medium,
+    (l) => l.campaign,
+  ]);
+  const ads = withRealCpl(base.ads, leads, [
+    (l) => l.content,
+    (l) => l.term,
+    (l) => l.campaign,
+  ]);
+
   // Paid vs organic (cross Meta spend with sheet UTMs)
   const paidLeads = leads.filter((l) => isPaidLead(l.source, l.medium)).length;
   const organicLeads = total - paidLeads;
@@ -254,6 +328,9 @@ function overlaySheet(base: DashboardData, leads: LeadRow[]): DashboardData {
         : p,
     ),
     daily,
+    campaigns,
+    adsets,
+    ads,
     sources: sourceBreakdown(leads),
     paidOrganic,
     recentLeads: sorted.slice(0, 25),

@@ -386,22 +386,23 @@ export function CampaignsTable({ data }: { data: DashboardData }) {
     <Card>
       <SectionTitle hint={`Campanhas ${data.launch} — Meta`}>Campanhas — Meta</SectionTitle>
       <div className="scroll-thin overflow-x-auto">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className="w-full min-w-[860px] text-left text-sm">
           <thead className="text-[11px] uppercase tracking-wide text-slate-400">
             <tr className="border-b border-slate-100">
               <th className="pb-2 pr-4 font-medium">Campanha</th>
               <th className="pb-2 pr-4 font-medium">Temp.</th>
               <th className="pb-2 pr-4 text-right font-medium">Investido</th>
-              <th className="pb-2 pr-4 text-right font-medium">Impressões</th>
               <th className="pb-2 pr-4 text-right font-medium">CTR</th>
-              <th className="pb-2 pr-4 text-right font-medium">Leads</th>
-              <th className="pb-2 text-right font-medium">CPL</th>
+              <th className="pb-2 pr-4 text-right font-medium">Leads pixel</th>
+              <th className="pb-2 pr-4 text-right font-medium">CPL pixel</th>
+              <th className="pb-2 pr-4 text-right font-medium text-[#1e3a8a]">Leads reais</th>
+              <th className="pb-2 text-right font-medium text-[#1e3a8a]">CPL real</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
             {data.campaigns.map((c) => (
               <tr key={c.id} className="text-slate-700 hover:bg-slate-50/60">
-                <td className="max-w-[280px] truncate py-2.5 pr-4 font-medium text-slate-800">
+                <td className="max-w-[260px] truncate py-2.5 pr-4 font-medium text-slate-800">
                   {c.name}
                 </td>
                 <td className="py-2.5 pr-4">
@@ -414,17 +415,23 @@ export function CampaignsTable({ data }: { data: DashboardData }) {
                   )}
                 </td>
                 <td className="py-2.5 pr-4 text-right tnum">{money(c.spend)}</td>
-                <td className="py-2.5 pr-4 text-right tnum">{compact(c.impressions)}</td>
                 <td className="py-2.5 pr-4 text-right tnum">{pct(c.ctr)}</td>
-                <td className="py-2.5 pr-4 text-right tnum">{num(c.leads)}</td>
-                <td className="py-2.5 text-right font-semibold text-emerald-600 tnum">
-                  {money2(c.cpl)}
+                <td className="py-2.5 pr-4 text-right text-slate-400 tnum">{num(c.leads)}</td>
+                <td className="py-2.5 pr-4 text-right text-slate-400 tnum">{money2(c.cpl)}</td>
+                <td className="py-2.5 pr-4 text-right font-semibold tnum">
+                  {c.realLeads != null ? num(c.realLeads) : "—"}
+                </td>
+                <td className="py-2.5 text-right font-bold text-[#1e3a8a] tnum">
+                  {c.realLeads ? money2(c.realCpl ?? 0) : "—"}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      <p className="mt-2 text-[11px] text-slate-400">
+        Leads reais = leads da planilha cruzados por UTM · CPL real = investido ÷ leads reais
+      </p>
     </Card>
   );
 }

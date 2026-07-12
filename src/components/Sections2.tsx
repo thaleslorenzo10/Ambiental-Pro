@@ -388,17 +388,17 @@ export function AdEntityTable({
   return (
     <Card>
       <SectionTitle hint={hint}>{title}</SectionTitle>
-      <div className="scroll-thin max-h-[420px] overflow-auto">
-        <table className="w-full min-w-[720px] text-left text-sm">
+      <div className="scroll-thin max-h-[440px] overflow-auto">
+        <table className="w-full min-w-[820px] text-left text-sm">
           <thead className="sticky top-0 bg-white text-[11px] uppercase tracking-wide text-slate-400">
             <tr className="border-b border-slate-100">
               <th className="pb-2 pr-4 font-medium">Nome</th>
               <th className="pb-2 pr-4 font-medium">Temp.</th>
               <th className="pb-2 pr-4 text-right font-medium">Investido</th>
-              <th className="pb-2 pr-4 text-right font-medium">Impressões</th>
               <th className="pb-2 pr-4 text-right font-medium">CTR</th>
-              <th className="pb-2 pr-4 text-right font-medium">Leads</th>
-              <th className="pb-2 text-right font-medium">CPL</th>
+              <th className="pb-2 pr-4 text-right font-medium">Leads pixel</th>
+              <th className="pb-2 pr-4 text-right font-medium text-[#1e3a8a]">Leads reais</th>
+              <th className="pb-2 text-right font-medium text-[#1e3a8a]">CPL real</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -420,10 +420,14 @@ export function AdEntityTable({
                   )}
                 </td>
                 <td className="py-2.5 pr-4 text-right tnum">{money(r.spend)}</td>
-                <td className="py-2.5 pr-4 text-right tnum">{compact(r.impressions)}</td>
                 <td className="py-2.5 pr-4 text-right tnum">{pct(r.ctr)}</td>
-                <td className="py-2.5 pr-4 text-right tnum">{num(r.leads)}</td>
-                <td className="py-2.5 text-right font-semibold text-emerald-600 tnum">{money2(r.cpl)}</td>
+                <td className="py-2.5 pr-4 text-right text-slate-400 tnum">{num(r.leads)}</td>
+                <td className="py-2.5 pr-4 text-right font-semibold tnum">
+                  {r.realLeads != null ? num(r.realLeads) : "—"}
+                </td>
+                <td className="py-2.5 text-right font-bold text-[#1e3a8a] tnum">
+                  {r.realLeads ? money2(r.realCpl ?? 0) : "—"}
+                </td>
               </tr>
             ))}
           </tbody>
