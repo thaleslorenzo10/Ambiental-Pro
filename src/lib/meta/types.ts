@@ -159,6 +159,23 @@ export interface DashboardTotals {
   leadsYesterday: number;
 }
 
+export type PhaseStatus = "RODANDO" | "AGUARDANDO" | "CONCLUÍDO";
+
+export interface LaunchPhase {
+  id: string;
+  name: string;
+  description: string;
+  status: PhaseStatus;
+  window: string; // e.g. "29/06 → 20/07"
+  budget: number;
+  spent: number;
+  leads: number;
+  cpl: number;
+  channels: { channel: Channel; label: string; spent: number; leads: number }[];
+  /** optional sales goal for the vendas phase */
+  salesGoal?: number;
+}
+
 export interface DashboardData {
   source: "meta" | "mock";
   currency: string; // "BRL"
@@ -187,5 +204,6 @@ export interface DashboardData {
   countries: CountryBreakdown[];
   sources: SourceBreakdown[];
   recentLeads: LeadRow[];
+  phases: LaunchPhase[];
   leadsFromSheet: boolean;
 }

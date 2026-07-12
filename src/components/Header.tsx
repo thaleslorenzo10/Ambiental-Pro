@@ -1,8 +1,20 @@
+import Link from "next/link";
 import type { DashboardData } from "@/lib/meta/types";
 import { shortDate } from "@/lib/format";
 import { Badge } from "./Card";
 
-export function Header({ data }: { data: DashboardData }) {
+const TABS = [
+  { href: "/dashboard-pos", label: "L-01 Atual (Captação)" },
+  { href: "/dashboard-pos/visao-geral", label: "Visão Geral" },
+];
+
+export function Header({
+  data,
+  active = "/dashboard-pos",
+}: {
+  data: DashboardData;
+  active?: string;
+}) {
   return (
     <header className="rounded-2xl border border-[#e7e9ee] bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -39,6 +51,25 @@ export function Header({ data }: { data: DashboardData }) {
           </Badge>
         </div>
       </div>
+
+      <nav className="mt-4 flex gap-1 border-t border-slate-100 pt-3">
+        {TABS.map((t) => {
+          const isActive = t.href === active;
+          return (
+            <Link
+              key={t.href}
+              href={t.href}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                isActive
+                  ? "bg-[#1e3a8a] text-white"
+                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+              }`}
+            >
+              {t.label}
+            </Link>
+          );
+        })}
+      </nav>
     </header>
   );
 }

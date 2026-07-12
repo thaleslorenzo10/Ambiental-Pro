@@ -292,6 +292,56 @@ export function buildSnapshot(
   adsets.sort((a, b) => b.spend - a.spend);
   ads.sort((a, b) => b.spend - a.spend);
 
+  // Launch phases (Imersão GIS): captação R$32k + remarketing R$8k = total R$40k
+  const REMARKETING_BUDGET = 8000;
+  const phases = [
+    {
+      id: "captacao",
+      name: "Captação",
+      description: "Leads do lançamento",
+      status: "RODANDO" as const,
+      window: "29/06 → 20/07",
+      budget: budgetTotal,
+      spent: invested,
+      leads: leadsReal,
+      cpl: cplReal,
+      channels: [
+        { channel: "meta" as const, label: "Meta", spent: invested, leads: leadsReal },
+        { channel: "tiktok" as const, label: "TikTok", spent: 0, leads: 0 },
+        { channel: "google" as const, label: "Google", spent: 0, leads: 0 },
+      ],
+    },
+    {
+      id: "remarketing",
+      name: "Remarketing",
+      description: "Lembrete + replay das aulas",
+      status: "AGUARDANDO" as const,
+      window: "20/07 → 27/07",
+      budget: REMARKETING_BUDGET,
+      spent: 0,
+      leads: 0,
+      cpl: 0,
+      channels: [
+        { channel: "meta" as const, label: "Meta", spent: 0, leads: 0 },
+      ],
+    },
+    {
+      id: "vendas",
+      name: "Vendas",
+      description: "Carrinho aberto 22/07 → fechamento 27/07",
+      status: "AGUARDANDO" as const,
+      window: "22/07 → 27/07",
+      budget: 0,
+      spent: 0,
+      leads: 0,
+      cpl: 0,
+      salesGoal,
+      channels: [
+        { channel: "meta" as const, label: "Meta", spent: 0, leads: 0 },
+      ],
+    },
+  ];
+
   return {
     source: "mock",
     currency: "BRL",
@@ -345,6 +395,7 @@ export function buildSnapshot(
     countries,
     sources,
     recentLeads,
+    phases,
     leadsFromSheet: false,
   };
 }
