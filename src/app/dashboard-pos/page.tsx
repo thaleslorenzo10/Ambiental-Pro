@@ -18,6 +18,7 @@ import {
   CumulativeSources,
   HotColdSplit,
   PacingCard,
+  PaidOrganicCard,
   PlacementSection,
   ProjectionCard,
   SalesCard,
@@ -145,6 +146,7 @@ export default async function DashboardPos({
 
       {/* Leads */}
       <section id="leads" className="scroll-mt-16 space-y-4">
+        <PaidOrganicCard po={data.paidOrganic} />
         <CumulativeSources series={data.sourceSeries} keys={data.sourceKeys} />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="lg:col-span-1">

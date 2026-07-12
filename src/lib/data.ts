@@ -2,6 +2,7 @@ import { fetchMetaMetrics, isMetaConfigured, type MetaMetrics } from "./meta/cli
 import { buildSnapshot } from "./meta/snapshot";
 import { fetchSheetLeads, isSheetsConfigured } from "./sheets/leads";
 import { periodFor, periodRange } from "./period";
+import { isPaidLead } from "./classify";
 import type {
   DashboardData,
   LeadRow,
@@ -116,7 +117,14 @@ function sourceBreakdown(leads: LeadRow[]): SourceBreakdown[] {
   const map = new Map<string, SourceBreakdown>();
   for (const l of leads) {
     const key = l.source || "—";
-    const e = map.get(key) || { source: key, platform: l.platform, leads: 0 };
+    const e =
+      map.get(key) ||
+      ({
+        source: key,
+        platform: l.platform,
+        leads: 0,
+        paid: isPaidLead(l.source, l.medium),
+      } as SourceBreakdown);
     e.leads += 1;
     map.set(key, e);
   }
@@ -169,6 +177,19 @@ function overlaySheet(base: DashboardData, leads: LeadRow[]): DashboardData {
   const daysRemaining = base.projection.daysRemaining;
   const leadsPerDay = daysElapsed ? total / daysElapsed : 0;
   const leadsProjected = Math.round(total + leadsPerDay * daysRemaining);
+
+  // Paid vs organic (cross Meta spend with sheet UTMs)
+  const paidLeads = leads.filter((l) => isPaidLead(l.source, l.medium)).length;
+  const organicLeads = total - paidLeads;
+  const paidOrganic = {
+    paidLeads,
+    organicLeads,
+    paidPct: total ? +((paidLeads / total) * 100).toFixed(1) : 0,
+    organicPct: total ? +((organicLeads / total) * 100).toFixed(1) : 0,
+    paidSpend: spend,
+    paidCpl: paidLeads ? +(spend / paidLeads).toFixed(2) : 0,
+    blendedCpl: total ? +(spend / total).toFixed(2) : 0,
+  };
 
   // Accumulated traffic sources from real sheet leads
   const LABELS: Record<string, string> = {
@@ -234,6 +255,7 @@ function overlaySheet(base: DashboardData, leads: LeadRow[]): DashboardData {
     ),
     daily,
     sources: sourceBreakdown(leads),
+    paidOrganic,
     recentLeads: sorted.slice(0, 25),
     tracking: {
       metaPixelLeads: pixel,

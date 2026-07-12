@@ -448,8 +448,15 @@ export function SourcesList({ sources }: { sources: SourceBreakdown[] }) {
       <div className="space-y-3">
         {sources.map((s) => (
           <div key={s.source} className="flex items-center gap-3">
-            <span className="w-24 shrink-0 truncate text-xs text-slate-600">
+            <span className="flex w-28 shrink-0 items-center gap-1.5 truncate text-xs text-slate-600">
               {platformLabel[s.platform] || titleCase(s.source)}
+              <span
+                className={`rounded px-1 py-0.5 text-[9px] font-bold uppercase ${
+                  s.paid ? "bg-blue-50 text-blue-600" : "bg-emerald-50 text-emerald-600"
+                }`}
+              >
+                {s.paid ? "pago" : "grátis"}
+              </span>
             </span>
             <div className="h-4 flex-1 overflow-hidden rounded bg-slate-100">
               <div

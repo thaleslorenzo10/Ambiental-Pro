@@ -98,6 +98,17 @@ export interface SourceBreakdown {
   source: string;
   platform: Platform;
   leads: number;
+  paid: boolean;
+}
+
+export interface PaidOrganicSplit {
+  paidLeads: number;
+  organicLeads: number;
+  paidPct: number;
+  organicPct: number;
+  paidSpend: number;
+  paidCpl: number; // spend / paidLeads (custo real do lead pago)
+  blendedCpl: number; // spend / (paid + organic) — CPL "misturado"
 }
 
 export interface SecondaryMetrics {
@@ -230,6 +241,7 @@ export interface DashboardData {
   placements: PlacementBreakdown[];
   countries: CountryBreakdown[];
   sources: SourceBreakdown[];
+  paidOrganic: PaidOrganicSplit;
   sourceKeys: string[];
   sourceSeries: SourceSeriesPoint[];
   recentLeads: LeadRow[];

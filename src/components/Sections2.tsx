@@ -2,6 +2,7 @@ import type {
   AdEntityRow,
   CountryBreakdown,
   DashboardData,
+  PaidOrganicSplit,
   PlacementBreakdown,
   Projection,
   SalesProjection,
@@ -623,6 +624,77 @@ export function CreativesToScale({ ads }: { ads: AdEntityRow[] }) {
           </div>
         </div>
       </div>
+    </Card>
+  );
+}
+
+/* ------------------------- Paid vs Organic (UTM x Meta) ------------------- */
+
+export function PaidOrganicCard({ po }: { po: PaidOrganicSplit }) {
+  const total = po.paidLeads + po.organicLeads || 1;
+  const paidW = (po.paidLeads / total) * 100;
+  const orgW = (po.organicLeads / total) * 100;
+  return (
+    <Card>
+      <SectionTitle dot="#059669" hint="Cruzamento das UTMs da planilha com o investimento do Meta">
+        Leads pagos x orgânicos
+      </SectionTitle>
+
+      <div className="mb-4 flex h-7 w-full overflow-hidden rounded-lg">
+        <div
+          className="flex items-center justify-start bg-[#1e3a8a] pl-2 text-xs font-semibold text-white"
+          style={{ width: `${paidW}%` }}
+        >
+          {paidW > 15 ? `Pago ${pct(po.paidPct)}` : ""}
+        </div>
+        <div
+          className="flex items-center justify-end bg-emerald-500 pr-2 text-xs font-semibold text-white"
+          style={{ width: `${orgW}%` }}
+        >
+          {orgW > 15 ? `Orgânico ${pct(po.organicPct)}` : ""}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+          <div className="flex items-center justify-between">
+            <Badge color="blue">Pago (mídia)</Badge>
+            <span className="text-xs font-semibold text-slate-500">{pct(po.paidPct)}</span>
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-center">
+            <div>
+              <p className="text-[10px] uppercase text-slate-400">Leads</p>
+              <p className="text-lg font-bold text-slate-800 tnum">{num(po.paidLeads)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase text-slate-400">CPL real</p>
+              <p className="text-lg font-bold text-[#1e3a8a] tnum">{money2(po.paidCpl)}</p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4">
+          <div className="flex items-center justify-between">
+            <Badge color="green">Orgânico (grátis)</Badge>
+            <span className="text-xs font-semibold text-slate-500">{pct(po.organicPct)}</span>
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-center">
+            <div>
+              <p className="text-[10px] uppercase text-slate-400">Leads</p>
+              <p className="text-lg font-bold text-slate-800 tnum">{num(po.organicLeads)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase text-slate-400">Custo</p>
+              <p className="text-lg font-bold text-emerald-600 tnum">R$ 0</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
+        💡 <b>{pct(po.organicPct)}</b> dos leads vieram <b>de graça</b> (orgânico). O CPL real da
+        mídia paga é <b>{money2(po.paidCpl)}</b> — o CPL "misturado" ({money2(po.blendedCpl)}) parece
+        menor porque inclui os leads orgânicos.
+      </p>
     </Card>
   );
 }

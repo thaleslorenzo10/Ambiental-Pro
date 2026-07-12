@@ -10,6 +10,7 @@ import type {
   SourceBreakdown,
   TemperatureSplit,
 } from "./types";
+import { isPaidLead } from "../classify";
 
 // Snapshot of REAL Meta data for the [IMERSÃOGIS] [JUL26] campaigns, pulled from
 // the ad account (673524229757641). Used as the fallback when the app has no live
@@ -163,7 +164,19 @@ export function buildSnapshot(
     source: s.source,
     platform: s.platform,
     leads: Math.round(leadsReal * s.weight),
+    paid: isPaidLead(s.source, s.medium),
   }));
+  const paidLeads = sources.filter((s) => s.paid).reduce((a, s) => a + s.leads, 0);
+  const organicLeads = sources.filter((s) => !s.paid).reduce((a, s) => a + s.leads, 0);
+  const paidOrganic = {
+    paidLeads,
+    organicLeads,
+    paidPct: leadsReal ? +((paidLeads / leadsReal) * 100).toFixed(1) : 0,
+    organicPct: leadsReal ? +((organicLeads / leadsReal) * 100).toFixed(1) : 0,
+    paidSpend: TOTAL_SPEND,
+    paidCpl: paidLeads ? +(TOTAL_SPEND / paidLeads).toFixed(2) : 0,
+    blendedCpl: leadsReal ? +(TOTAL_SPEND / leadsReal).toFixed(2) : 0,
+  };
 
   const recentLeads: LeadRow[] = Array.from({ length: 20 }).map((_, i) => {
     const s = SOURCES[Math.floor(rand() * SOURCES.length) % SOURCES.length];
@@ -436,6 +449,7 @@ export function buildSnapshot(
     placements,
     countries,
     sources,
+    paidOrganic,
     sourceKeys,
     sourceSeries,
     recentLeads,
