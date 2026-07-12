@@ -304,6 +304,19 @@ export function buildSnapshot(
     };
   });
 
+  // Demographic breakdown (age × gender)
+  const AGES = ["18-24", "25-34", "35-44", "45-54", "55-64", "65+"];
+  const AGE_W = [0.12, 0.34, 0.28, 0.15, 0.08, 0.03];
+  const demographics = AGES.flatMap((age, i) =>
+    (["female", "male"] as const).map((gender, g) => {
+      const w = AGE_W[i] * (gender === "female" ? 0.56 : 0.44);
+      const spend = +(TOTAL_SPEND * w).toFixed(2);
+      const cplMul = age === "25-34" || age === "35-44" ? 0.9 : 1.1;
+      const leads = Math.max(1, Math.round((leadsReal * w) / cplMul));
+      return { age, gender, spend, leads, cpl: +(spend / leads).toFixed(2) };
+    }),
+  ).sort((a, b) => b.spend - a.spend);
+
   // Adsets (2 per campaign) and Ads (2 per adset)
   const ADSET_SUFFIX = ["Interesses", "Lookalike 1%", "Amplo", "Retargeting"];
   const AD_SUFFIX = ["Vídeo VSL", "Imagem Depoimento", "Carrossel", "Reels Nativo"];
@@ -459,6 +472,7 @@ export function buildSnapshot(
     ads,
     placements,
     countries,
+    demographics,
     sources,
     paidOrganic,
     sourceKeys,

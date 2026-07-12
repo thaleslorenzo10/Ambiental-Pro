@@ -255,6 +255,7 @@ export interface DashboardData {
   ads: AdEntityRow[];
   placements: PlacementBreakdown[];
   countries: CountryBreakdown[];
+  demographics: DemographicBreakdown[];
   sources: SourceBreakdown[];
   paidOrganic: PaidOrganicSplit;
   sourceKeys: string[];

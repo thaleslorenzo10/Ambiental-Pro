@@ -16,6 +16,7 @@ import {
   CountrySection,
   CreativesToScale,
   CumulativeSources,
+  DemographicSection,
   HotColdSplit,
   PacingCard,
   PaidOrganicCard,
@@ -143,6 +144,11 @@ export default async function DashboardPos({
       {/* Países */}
       <section id="paises" className="scroll-mt-16">
         <CountrySection countries={data.countries} />
+      </section>
+
+      {/* Demográfico */}
+      <section id="demografico" className="scroll-mt-16">
+        <DemographicSection demographics={data.demographics} />
       </section>
 
       {/* HOT + COLD */}

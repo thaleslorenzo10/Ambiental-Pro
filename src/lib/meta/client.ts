@@ -4,6 +4,7 @@ import type {
   ChannelStats,
   CountryBreakdown,
   DailyMetric,
+  DemographicBreakdown,
   Funnel,
   PlacementBreakdown,
   SecondaryMetrics,
@@ -30,6 +31,7 @@ export interface MetaMetrics {
   ads: AdEntityRow[];
   placements: PlacementBreakdown[];
   countries: CountryBreakdown[];
+  demographics: DemographicBreakdown[];
   daily: { date: string; spend: number; leadsPixel: number }[];
   totalSpend: number;
   impressions: number;
@@ -126,6 +128,8 @@ interface Row {
   publisher_platform?: string;
   platform_position?: string;
   country?: string;
+  age?: string;
+  gender?: string;
   actions?: Action[];
 }
 
@@ -211,7 +215,7 @@ export async function fetchMetaMetrics(datePreset = "maximum"): Promise<MetaMetr
   ]);
 
   // Optional richer breakdowns — never break the dashboard if they fail.
-  const [adsetRes, adRes, placementRes, countryRes] = await Promise.all([
+  const [adsetRes, adRes, placementRes, countryRes, demoRes] = await Promise.all([
     safe(
       () =>
         graph<{ data: Row[] }>(`${account}/insights`, {
@@ -253,6 +257,18 @@ export async function fetchMetaMetrics(datePreset = "maximum"): Promise<MetaMetr
           date_preset: datePreset,
           fields: "spend,actions",
           breakdowns: "country",
+          filtering,
+          limit: "100",
+        }),
+      { data: [] as Row[] },
+    ),
+    safe(
+      () =>
+        graph<{ data: Row[] }>(`${account}/insights`, {
+          level: "account",
+          date_preset: datePreset,
+          fields: "spend,actions",
+          breakdowns: "age,gender",
           filtering,
           limit: "100",
         }),
@@ -381,12 +397,33 @@ export async function fetchMetaMetrics(datePreset = "maximum"): Promise<MetaMetr
     .sort((a, b) => b.spend - a.spend)
     .slice(0, 8);
 
+  const GENDER: Record<string, DemographicBreakdown["gender"]> = {
+    female: "female",
+    male: "male",
+    unknown: "unknown",
+  };
+  const demographics: DemographicBreakdown[] = demoRes.data
+    .map((r) => {
+      const spend = Number(r.spend || 0);
+      const leads = leadsFrom(r.actions);
+      return {
+        age: r.age || "—",
+        gender: GENDER[r.gender || "unknown"] || "unknown",
+        spend: +spend.toFixed(2),
+        leads,
+        cpl: leads ? +(spend / leads).toFixed(2) : 0,
+      };
+    })
+    .filter((d) => d.spend > 0)
+    .sort((a, b) => b.spend - a.spend);
+
   return {
     campaigns: campaigns.sort((a, b) => b.spend - a.spend),
     adsets,
     ads,
     placements,
     countries,
+    demographics,
     daily,
     totalSpend,
     impressions,

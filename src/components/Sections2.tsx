@@ -2,6 +2,7 @@ import type {
   AdEntityRow,
   CountryBreakdown,
   DashboardData,
+  DemographicBreakdown,
   PaidOrganicSplit,
   PlacementBreakdown,
   Projection,
@@ -26,6 +27,7 @@ const NAV = [
   { id: "anuncios", label: "Anúncios" },
   { id: "placement", label: "Placement" },
   { id: "paises", label: "Países" },
+  { id: "demografico", label: "Demográfico" },
   { id: "hotcold", label: "HOT+COLD" },
   { id: "vendas", label: "Vendas" },
   { id: "leads", label: "Leads" },
@@ -748,6 +750,83 @@ export function PaidOrganicCard({ po }: { po: PaidOrganicSplit }) {
         mídia paga é <b>{money2(po.paidCpl)}</b> — o CPL "misturado" ({money2(po.blendedCpl)}) parece
         menor porque inclui os leads orgânicos.
       </p>
+    </Card>
+  );
+}
+
+/* ---------------------------- Demographics -------------------------------- */
+
+const GENDER_LABEL: Record<string, string> = {
+  female: "Feminino",
+  male: "Masculino",
+  unknown: "—",
+};
+
+export function DemographicSection({ demographics }: { demographics: DemographicBreakdown[] }) {
+  if (!demographics.length) return null;
+  const byCpl = [...demographics].filter((d) => d.leads >= 3).sort((a, b) => a.cpl - b.cpl);
+  const best = byCpl[0];
+  const maxLeads = Math.max(...demographics.map((d) => d.leads), 1);
+  const rows = [...demographics].sort((a, b) => b.leads - a.leads);
+  return (
+    <Card>
+      <SectionTitle hint="Onde o lead sai mais barato (Meta)">
+        Demográfico — idade e gênero
+      </SectionTitle>
+      {best && (
+        <div className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
+          🏆 Segmento mais eficiente: <b>{best.age} · {GENDER_LABEL[best.gender]}</b> —
+          CPL {money2(best.cpl)} ({num(best.leads)} leads)
+        </div>
+      )}
+      <div className="scroll-thin max-h-[420px] overflow-auto">
+        <table className="w-full min-w-[560px] text-left text-sm">
+          <thead className="sticky top-0 bg-white text-[11px] uppercase tracking-wide text-slate-400">
+            <tr className="border-b border-slate-100">
+              <th className="pb-2 pr-4 font-medium">Idade</th>
+              <th className="pb-2 pr-4 font-medium">Gênero</th>
+              <th className="pb-2 pr-4 font-medium">Leads</th>
+              <th className="pb-2 pr-4 text-right font-medium">Investido</th>
+              <th className="pb-2 text-right font-medium">CPL</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {rows.map((d, i) => (
+              <tr key={i} className="text-slate-700 hover:bg-slate-50/60">
+                <td className="py-2.5 pr-4 font-medium text-slate-800">{d.age}</td>
+                <td className="py-2.5 pr-4">
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      d.gender === "female"
+                        ? "bg-pink-50 text-pink-600"
+                        : d.gender === "male"
+                          ? "bg-blue-50 text-blue-600"
+                          : "bg-slate-100 text-slate-500"
+                    }`}
+                  >
+                    {GENDER_LABEL[d.gender]}
+                  </span>
+                </td>
+                <td className="py-2.5 pr-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-24 overflow-hidden rounded bg-slate-100">
+                      <div
+                        className="h-full rounded bg-[#1e3a8a]"
+                        style={{ width: `${(d.leads / maxLeads) * 100}%` }}
+                      />
+                    </div>
+                    <span className="tnum text-xs">{num(d.leads)}</span>
+                  </div>
+                </td>
+                <td className="py-2.5 pr-4 text-right tnum">{money(d.spend)}</td>
+                <td className="py-2.5 text-right font-semibold text-emerald-600 tnum">
+                  {money2(d.cpl)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </Card>
   );
 }

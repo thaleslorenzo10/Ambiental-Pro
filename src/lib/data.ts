@@ -213,6 +213,7 @@ function overlayMeta(base: DashboardData, m: MetaMetrics): DashboardData {
     ads: m.ads.length ? m.ads : base.ads,
     placements: m.placements.length ? m.placements : base.placements,
     countries: m.countries.length ? m.countries : base.countries,
+    demographics: m.demographics.length ? m.demographics : base.demographics,
     daily: daily.length ? daily : base.daily,
     // captação phase reflects live spend/leads
     phases: base.phases.map((p) =>
