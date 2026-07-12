@@ -211,7 +211,29 @@ export function buildSnapshot(
     spendProjected,
     budgetTotal,
     onPace: leadsProjected >= goalLeads,
+    spendPerDayCurrent: +(invested / daysElapsed).toFixed(2),
+    spendPerDayNeeded: daysRemaining ? +((budgetTotal - invested) / daysRemaining).toFixed(2) : 0,
+    leadsPerDayCurrent: Math.round(leadsReal / daysElapsed),
+    leadsPerDayNeeded: daysRemaining ? Math.ceil((goalLeads - leadsReal) / daysRemaining) : 0,
   };
+
+  // Accumulated traffic sources (stacked over time)
+  const SOURCE_LABEL: Record<string, string> = {
+    instagram: "Instagram",
+    facebook: "Facebook",
+    whatsapp: "WhatsApp",
+    email: "E-mail",
+    organic: "Orgânico",
+  };
+  const sourceKeys = SOURCES.map((s) => SOURCE_LABEL[s.platform] || s.source);
+  const cum: Record<string, number> = {};
+  sourceKeys.forEach((k) => (cum[k] = 0));
+  const sourceSeries = daily.map((d) => {
+    SOURCES.forEach((s, i) => {
+      cum[sourceKeys[i]] += Math.round(d.leads * s.weight);
+    });
+    return { date: d.date, ...cum } as { date: string } & Record<string, number>;
+  });
 
   // Placement breakdown
   const PLACEMENTS: { placement: string; w: number; cplMul: number }[] = [
@@ -394,6 +416,8 @@ export function buildSnapshot(
     placements,
     countries,
     sources,
+    sourceKeys,
+    sourceSeries,
     recentLeads,
     phases,
     leadsFromSheet: false,

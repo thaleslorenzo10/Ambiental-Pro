@@ -118,6 +118,17 @@ export interface Projection {
   spendProjected: number;
   budgetTotal: number;
   onPace: boolean;
+  // daily pacing
+  spendPerDayCurrent: number;
+  spendPerDayNeeded: number;
+  leadsPerDayCurrent: number;
+  leadsPerDayNeeded: number;
+}
+
+/** One row per day with cumulative leads per traffic source. */
+export interface SourceSeriesPoint {
+  date: string;
+  [source: string]: number | string;
 }
 
 export interface PlacementBreakdown {
@@ -203,6 +214,8 @@ export interface DashboardData {
   placements: PlacementBreakdown[];
   countries: CountryBreakdown[];
   sources: SourceBreakdown[];
+  sourceKeys: string[];
+  sourceSeries: SourceSeriesPoint[];
   recentLeads: LeadRow[];
   phases: LaunchPhase[];
   leadsFromSheet: boolean;

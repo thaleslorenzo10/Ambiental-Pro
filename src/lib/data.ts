@@ -52,6 +52,12 @@ function overlayMeta(base: DashboardData, m: MetaMetrics): DashboardData {
     spendCurrent: m.totalSpend,
     spendProjected,
     onPace: leadsProjected >= base.projection.leadsGoal,
+    spendPerDayCurrent: budget.daysElapsed ? +(m.totalSpend / budget.daysElapsed).toFixed(2) : 0,
+    spendPerDayNeeded: daysRemaining ? +((budget.total - m.totalSpend) / daysRemaining).toFixed(2) : 0,
+    leadsPerDayCurrent: budget.daysElapsed ? Math.round(leadsPixel / budget.daysElapsed) : 0,
+    leadsPerDayNeeded: daysRemaining
+      ? Math.max(Math.ceil((base.projection.leadsGoal - leadsPixel) / daysRemaining), 0)
+      : 0,
   };
 
   return {
@@ -163,6 +169,41 @@ function overlaySheet(base: DashboardData, leads: LeadRow[]): DashboardData {
   const leadsPerDay = daysElapsed ? total / daysElapsed : 0;
   const leadsProjected = Math.round(total + leadsPerDay * daysRemaining);
 
+  // Accumulated traffic sources from real sheet leads
+  const LABELS: Record<string, string> = {
+    instagram: "Instagram",
+    facebook: "Facebook",
+    whatsapp: "WhatsApp",
+    email: "E-mail",
+    google: "Google",
+    organic: "Orgânico",
+    unknown: "Outros",
+  };
+  const labelOf = (l: LeadRow) => LABELS[l.platform] || l.source || "Outros";
+  const totalsByLabel = new Map<string, number>();
+  for (const l of leads) totalsByLabel.set(labelOf(l), (totalsByLabel.get(labelOf(l)) || 0) + 1);
+  const sourceKeys = Array.from(totalsByLabel.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map((e) => e[0]);
+  const keySet = new Set(sourceKeys);
+  const perDayByLabel = new Map<string, Record<string, number>>();
+  for (const l of leads) {
+    const d = l.createdTime.slice(0, 10);
+    const k = labelOf(l);
+    if (!keySet.has(k)) continue;
+    const row = perDayByLabel.get(d) || {};
+    row[k] = (row[k] || 0) + 1;
+    perDayByLabel.set(d, row);
+  }
+  const cumBySource: Record<string, number> = {};
+  sourceKeys.forEach((k) => (cumBySource[k] = 0));
+  const sourceSeries = dates.map((date) => {
+    const row = perDayByLabel.get(date) || {};
+    sourceKeys.forEach((k) => (cumBySource[k] += row[k] || 0));
+    return { date, ...cumBySource };
+  });
+
   return {
     ...base,
     leadsFromSheet: true,
@@ -178,7 +219,13 @@ function overlaySheet(base: DashboardData, leads: LeadRow[]): DashboardData {
       leadsCurrent: total,
       leadsProjected,
       onPace: leadsProjected >= base.projection.leadsGoal,
+      leadsPerDayCurrent: daysElapsed ? Math.round(total / daysElapsed) : 0,
+      leadsPerDayNeeded: daysRemaining
+        ? Math.max(Math.ceil((base.projection.leadsGoal - total) / daysRemaining), 0)
+        : 0,
     },
+    sourceKeys,
+    sourceSeries,
     phases: base.phases.map((p) =>
       p.id === "captacao"
         ? { ...p, leads: total, cpl: total ? +(spend / total).toFixed(2) : 0 }

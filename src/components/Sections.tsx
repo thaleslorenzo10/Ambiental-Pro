@@ -20,26 +20,42 @@ import { Card, SectionTitle, Badge } from "./Card";
 
 /* ------------------------------- KPI strip -------------------------------- */
 
-function Stat({
+function KpiCard({
   label,
   value,
   sub,
-  accent = "#1e3a8a",
+  icon,
+  accent,
+  tint,
 }: {
   label: string;
   value: string;
   sub?: string;
-  accent?: string;
+  icon: string;
+  accent: string;
+  tint: string;
 }) {
   return (
-    <div className="flex-1 px-4 py-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-        {label}
-      </p>
-      <p className="mt-1 text-2xl font-bold tnum" style={{ color: accent }}>
+    <div className="card-hover relative overflow-hidden rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-16px_rgba(15,23,42,0.12)]">
+      <span
+        className="absolute inset-y-0 left-0 w-1"
+        style={{ background: accent }}
+      />
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          {label}
+        </p>
+        <span
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-sm"
+          style={{ background: tint }}
+        >
+          {icon}
+        </span>
+      </div>
+      <p className="mt-2 text-[26px] font-bold leading-none tracking-tight tnum" style={{ color: accent }}>
         {value}
       </p>
-      {sub && <p className="mt-0.5 text-xs text-slate-400">{sub}</p>}
+      {sub && <p className="mt-1.5 text-xs text-slate-400">{sub}</p>}
     </div>
   );
 }
@@ -49,25 +65,38 @@ export function KpiStrip({ data }: { data: DashboardData }) {
   const goalPct = data.goalLeads ? (t.leadsReal / data.goalLeads) * 100 : 0;
   const cplGood = t.cplReal > 0 && t.cplReal <= data.cplTarget;
   return (
-    <div className="grid grid-cols-2 divide-slate-100 rounded-2xl border border-[#e7e9ee] bg-white shadow-sm sm:grid-cols-4 sm:divide-x">
-      <Stat label="Investido" value={money(t.spend)} sub="multi-canal" accent="#0f172a" />
-      <Stat
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <KpiCard
+        label="Investido"
+        value={money(t.spend)}
+        sub="multi-canal"
+        icon="💰"
+        accent="#0f172a"
+        tint="#f1f5f9"
+      />
+      <KpiCard
         label="Leads Reais"
         value={num(t.leadsReal)}
         sub={data.leadsFromSheet ? "planilha (real)" : "estimado"}
+        icon="👥"
         accent="#1e3a8a"
+        tint="#e0e7ff"
       />
-      <Stat
+      <KpiCard
         label="CPL Real"
         value={money2(t.cplReal)}
         sub={`alvo ${money2(data.cplTarget)}`}
+        icon="🎯"
         accent={cplGood ? "#059669" : "#dc2626"}
+        tint={cplGood ? "#d1fae5" : "#fee2e2"}
       />
-      <Stat
+      <KpiCard
         label={`Meta ${num(data.goalLeads)}`}
         value={pct(goalPct)}
         sub={`faltam ${num(Math.max(data.goalLeads - t.leadsReal, 0))}`}
+        icon="📈"
         accent="#7c3aed"
+        tint="#ede9fe"
       />
     </div>
   );
@@ -125,6 +154,34 @@ export function TrackingRadar({ tracking }: { tracking: Tracking }) {
           <p className="text-[11px] text-slate-400">{pct(Math.abs(tracking.diffPct))}</p>
         </div>
       </div>
+
+      {/* comparison bars */}
+      <div className="mt-5 space-y-3">
+        {[
+          { label: "Meta / Pixel", value: tracking.metaPixelLeads, color: "#3b82f6" },
+          { label: "Planilha", value: tracking.sheetLeads, color: "#10b981" },
+        ].map((r) => {
+          const max = Math.max(tracking.metaPixelLeads, tracking.sheetLeads, 1);
+          return (
+            <div key={r.label} className="flex items-center gap-3">
+              <span className="w-20 shrink-0 text-xs text-slate-500">{r.label}</span>
+              <div className="h-5 flex-1 overflow-hidden rounded-md bg-white/70">
+                <div
+                  className="flex h-full items-center justify-end rounded-md pr-2 text-[11px] font-semibold text-white"
+                  style={{ width: `${(r.value / max) * 100}%`, background: r.color }}
+                >
+                  {num(r.value)}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-3 text-[11px] text-slate-400">
+        {broken
+          ? "⚠️ Divergência entre pixel e planilha acima de 20% — revisar tracking."
+          : "✅ Pixel e planilha consistentes."}
+      </p>
     </Card>
   );
 }

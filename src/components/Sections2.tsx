@@ -9,7 +9,7 @@ import type {
 } from "@/lib/meta/types";
 import { compact, money, money2, num, pct } from "@/lib/format";
 import { Card, SectionTitle, Badge } from "./Card";
-import { CountryDonut } from "./Charts";
+import { CountryDonut, SourcesStackedArea } from "./Charts";
 
 /* --------------------------- Section nav (anchors) ------------------------ */
 
@@ -30,13 +30,13 @@ const NAV = [
 
 export function SubNav() {
   return (
-    <div className="scroll-thin sticky top-0 z-10 -mx-1 overflow-x-auto rounded-xl border border-[#e7e9ee] bg-white/90 px-2 py-2 backdrop-blur">
+    <div className="scroll-thin sticky top-2 z-20 -mx-1 overflow-x-auto rounded-2xl border border-[#e8eaf0] bg-white/80 px-2 py-2 shadow-[0_4px_16px_-8px_rgba(15,23,42,0.15)] backdrop-blur-md">
       <div className="flex items-center gap-1">
         {NAV.map((n) => (
           <a
             key={n.id}
             href={`#${n.id}`}
-            className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+            className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-[#1e3a8a]"
           >
             {n.label}
           </a>
@@ -368,6 +368,78 @@ export function AdEntityTable({
           </tbody>
         </table>
       </div>
+    </Card>
+  );
+}
+
+/* --------------------------- Daily pacing targets ------------------------- */
+
+export function PacingCard({ p }: { p: Projection }) {
+  const spendOnPace = p.spendPerDayCurrent >= p.spendPerDayNeeded;
+  const leadsOnPace = p.leadsPerDayCurrent >= p.leadsPerDayNeeded;
+  return (
+    <Card>
+      <SectionTitle hint={`Para bater a meta nos ${p.daysRemaining} dias restantes de captação`}>
+        Ritmo necessário por dia
+      </SectionTitle>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            💸 Investir / dia
+          </p>
+          <p className="mt-1 text-2xl font-bold text-[#1e3a8a] tnum">
+            {money(p.spendPerDayNeeded)}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            ritmo atual{" "}
+            <span className={`font-semibold ${spendOnPace ? "text-emerald-600" : "text-amber-600"}`}>
+              {money(p.spendPerDayCurrent)}/dia
+            </span>
+          </p>
+        </div>
+        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            🎯 Captar / dia
+          </p>
+          <p className="mt-1 text-2xl font-bold text-[#7c3aed] tnum">
+            {num(p.leadsPerDayNeeded)} <span className="text-sm font-medium text-slate-400">leads</span>
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            ritmo atual{" "}
+            <span className={`font-semibold ${leadsOnPace ? "text-emerald-600" : "text-amber-600"}`}>
+              {num(p.leadsPerDayCurrent)}/dia
+            </span>
+          </p>
+        </div>
+      </div>
+      <div
+        className={`mt-3 rounded-lg px-3 py-2 text-sm font-medium ${
+          leadsOnPace ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+        }`}
+      >
+        {leadsOnPace
+          ? `✅ Captando ${num(p.leadsPerDayCurrent)}/dia — acima do necessário (${num(p.leadsPerDayNeeded)}/dia).`
+          : `⚠️ Precisa subir de ${num(p.leadsPerDayCurrent)} para ${num(p.leadsPerDayNeeded)} leads/dia para bater a meta.`}
+      </div>
+    </Card>
+  );
+}
+
+/* ------------------------- Accumulated traffic sources -------------------- */
+
+export function CumulativeSources({
+  series,
+  keys,
+}: {
+  series: Array<Record<string, number | string>>;
+  keys: string[];
+}) {
+  return (
+    <Card>
+      <SectionTitle hint="Leads acumulados por origem ao longo da captação">
+        Fontes de tráfego acumuladas
+      </SectionTitle>
+      <SourcesStackedArea data={series} keys={keys} />
     </Card>
   );
 }

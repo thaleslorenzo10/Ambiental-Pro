@@ -14,7 +14,9 @@ import {
 import {
   AdEntityTable,
   CountrySection,
+  CumulativeSources,
   HotColdSplit,
+  PacingCard,
   PlacementSection,
   ProjectionCard,
   SecondaryMetricsRow,
@@ -44,7 +46,10 @@ export default async function DashboardPos() {
 
       {/* Projeção */}
       <section id="projecao" className="scroll-mt-16 space-y-4">
-        <ProjectionCard p={data.projection} />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <ProjectionCard p={data.projection} />
+          <PacingCard p={data.projection} />
+        </div>
         <Card>
           <SectionTitle hint="Ritmo real x pace ideal até o fim da captação">
             Investimento acumulado
@@ -112,7 +117,8 @@ export default async function DashboardPos() {
       </section>
 
       {/* Leads */}
-      <section id="leads" className="scroll-mt-16">
+      <section id="leads" className="scroll-mt-16 space-y-4">
+        <CumulativeSources series={data.sourceSeries} keys={data.sourceKeys} />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="lg:col-span-1">
             <SourcesList sources={data.sources} />

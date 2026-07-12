@@ -176,3 +176,50 @@ export function CountryDonut({ data }: { data: CountryBreakdown[] }) {
     </ResponsiveContainer>
   );
 }
+
+const SOURCE_COLORS: Record<string, string> = {
+  Instagram: "#d6336c",
+  Facebook: "#1877f2",
+  WhatsApp: "#22c55e",
+  "E-mail": "#f59e0b",
+  Google: "#4285f4",
+  Orgânico: "#64748b",
+  Outros: "#94a3b8",
+};
+
+export function SourcesStackedArea({
+  data,
+  keys,
+}: {
+  data: Array<Record<string, number | string>>;
+  keys: string[];
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={280}>
+      <ComposedChart data={data} margin={{ left: -8, right: 8, top: 8 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+        <XAxis dataKey="date" tickFormatter={shortDate} {...AXIS} tickLine={false} />
+        <YAxis tickFormatter={compact} {...AXIS} tickLine={false} axisLine={false} />
+        <Tooltip
+          {...tooltip}
+          labelFormatter={(l) => shortDate(String(l))}
+          formatter={(v: number, n) => [num(v), n]}
+        />
+        <Legend wrapperStyle={{ fontSize: 12 }} />
+        {keys.map((k, i) => (
+          <Area
+            key={k}
+            type="monotone"
+            dataKey={k}
+            name={k}
+            stackId="1"
+            stroke={SOURCE_COLORS[k] || `hsl(${i * 60}, 60%, 55%)`}
+            fill={SOURCE_COLORS[k] || `hsl(${i * 60}, 60%, 55%)`}
+            fillOpacity={0.75}
+            strokeWidth={1}
+          />
+        ))}
+      </ComposedChart>
+    </ResponsiveContainer>
+  );
+}
