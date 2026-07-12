@@ -4,6 +4,7 @@ import { fetchSheetLeads, isSheetsConfigured } from "./sheets/leads";
 import { periodFor, periodRange } from "./period";
 import { isPaidLead } from "./classify";
 import type {
+  AdEntityRow,
   DashboardData,
   LeadRow,
   Platform,
@@ -55,6 +56,63 @@ function crossMatch(
     }
   }
   return best;
+}
+
+/** Merge ad-entities that share the same name (e.g. "AD08" running in several
+    campaigns) into a single accumulated row. */
+function aggregateByName(rows: AdEntityRow[]): AdEntityRow[] {
+  const map = new Map<
+    string,
+    AdEntityRow & { _ctrImpr: number; _topSpend: number; _camps: Set<string> }
+  >();
+  for (const r of rows) {
+    const key = (r.name || r.id).trim();
+    let e = map.get(key);
+    if (!e) {
+      e = {
+        id: key,
+        name: r.name,
+        campaign: r.campaign,
+        temperature: r.temperature,
+        spend: 0,
+        impressions: 0,
+        ctr: 0,
+        leads: 0,
+        cpl: 0,
+        realLeads: 0,
+        realCpl: 0,
+        _ctrImpr: 0,
+        _topSpend: -1,
+        _camps: new Set<string>(),
+      };
+      map.set(key, e);
+    }
+    e.spend += r.spend;
+    e.impressions += r.impressions;
+    e.leads += r.leads;
+    e.realLeads = (e.realLeads ?? 0) + (r.realLeads ?? 0);
+    e._ctrImpr += r.ctr * r.impressions;
+    if (r.campaign) e._camps.add(r.campaign);
+    if (r.spend > e._topSpend) {
+      e._topSpend = r.spend;
+      e.temperature = r.temperature;
+    }
+  }
+  return Array.from(map.values())
+    .map((e) => ({
+      id: e.id,
+      name: e.name,
+      campaign: e._camps.size > 1 ? `${e._camps.size} campanhas` : [...e._camps][0],
+      temperature: e.temperature,
+      spend: +e.spend.toFixed(2),
+      impressions: e.impressions,
+      ctr: e.impressions ? +(e._ctrImpr / e.impressions).toFixed(2) : 0,
+      leads: e.leads,
+      cpl: e.leads ? +(e.spend / e.leads).toFixed(2) : 0,
+      realLeads: e.realLeads,
+      realCpl: e.realLeads ? +(e.spend / e.realLeads).toFixed(2) : 0,
+    }))
+    .sort((a, b) => b.spend - a.spend);
 }
 
 function withRealCpl<T extends { name: string; spend: number }>(
@@ -382,6 +440,10 @@ export async function getDashboardData(period?: string): Promise<DashboardData> 
       console.error("[sheets] keeping snapshot leads:", err);
     }
   }
+
+  // Accumulate conjuntos (públicos) e anúncios repetidos por nome
+  data.adsets = aggregateByName(data.adsets);
+  data.ads = aggregateByName(data.ads);
 
   data.period = opt.key;
   return data;
