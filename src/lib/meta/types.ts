@@ -203,6 +203,7 @@ export interface LaunchPhase {
 
 export interface DashboardData {
   source: "meta" | "mock";
+  period: string;
   currency: string; // "BRL"
   client: string;
   launch: string;

@@ -155,8 +155,62 @@ export function ProjectionCard({ p }: { p: Projection }) {
 
 /* ------------------------------ HOT + COLD -------------------------------- */
 
+function SplitBar({
+  label,
+  hot,
+  cold,
+  fmt,
+}: {
+  label: string;
+  hot: number;
+  cold: number;
+  fmt: (n: number) => string;
+}) {
+  const total = hot + cold || 1;
+  const hotPct = (hot / total) * 100;
+  const coldPct = (cold / total) * 100;
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between text-xs">
+        <span className="font-medium text-slate-500">{label}</span>
+        <span className="text-slate-400">
+          <span className="font-semibold text-orange-600">{pct(hotPct)} quente</span>
+          {" · "}
+          <span className="font-semibold text-blue-600">{pct(coldPct)} frio</span>
+        </span>
+      </div>
+      <div className="flex h-6 w-full overflow-hidden rounded-md">
+        <div
+          className="flex items-center justify-start bg-orange-400 pl-2 text-[11px] font-semibold text-white"
+          style={{ width: `${hotPct}%` }}
+        >
+          {hotPct > 12 ? fmt(hot) : ""}
+        </div>
+        <div
+          className="flex items-center justify-end bg-blue-500 pr-2 text-[11px] font-semibold text-white"
+          style={{ width: `${coldPct}%` }}
+        >
+          {coldPct > 12 ? fmt(cold) : ""}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function HotColdSplit({ temps }: { temps: TemperatureSplit[] }) {
   const total = temps.reduce((a, t) => a + t.spend, 0) || 1;
+  const hot = temps.find((t) => t.temperature === "HOT") ?? {
+    temperature: "HOT" as const,
+    spend: 0,
+    leads: 0,
+    cpl: 0,
+  };
+  const cold = temps.find((t) => t.temperature === "COLD") ?? {
+    temperature: "COLD" as const,
+    spend: 0,
+    leads: 0,
+    cpl: 0,
+  };
   const style: Record<string, { bg: string; badge: "orange" | "blue" }> = {
     HOT: { bg: "from-orange-50 to-white", badge: "orange" },
     COLD: { bg: "from-blue-50 to-white", badge: "blue" },
@@ -164,9 +218,13 @@ export function HotColdSplit({ temps }: { temps: TemperatureSplit[] }) {
   };
   return (
     <Card>
-      <SectionTitle hint="Investimento e leads por temperatura de público">
-        Proporção HOT + COLD
+      <SectionTitle hint="Público quente (HOT) x frio (COLD) — investimento e leads">
+        Proporção quente x frio (HOT + COLD)
       </SectionTitle>
+      <div className="mb-4 space-y-3">
+        <SplitBar label="Investimento" hot={hot.spend} cold={cold.spend} fmt={money} />
+        <SplitBar label="Leads" hot={hot.leads} cold={cold.leads} fmt={num} />
+      </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {temps.map((t) => {
           const s = style[t.temperature];

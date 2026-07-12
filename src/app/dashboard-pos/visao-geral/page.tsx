@@ -9,8 +9,13 @@ import { money, num } from "@/lib/format";
 
 export const revalidate = 300;
 
-export default async function VisaoGeral() {
-  const data = await getDashboardData();
+export default async function VisaoGeral({
+  searchParams,
+}: {
+  searchParams: Promise<{ p?: string }>;
+}) {
+  const { p } = await searchParams;
+  const data = await getDashboardData(p);
   const totalBudget = data.phases.reduce((a, p) => a + p.budget, 0);
   const totalSpent = data.phases.reduce((a, p) => a + p.spent, 0);
 

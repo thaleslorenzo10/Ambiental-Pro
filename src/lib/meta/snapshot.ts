@@ -384,6 +384,7 @@ export function buildSnapshot(
 
   return {
     source: "mock",
+    period: "max",
     currency: "BRL",
     client: "Ambiental Pro",
     launch: "Imersão GIS 2026",

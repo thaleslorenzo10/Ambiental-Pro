@@ -1,12 +1,39 @@
 import Link from "next/link";
 import type { DashboardData } from "@/lib/meta/types";
 import { shortDate } from "@/lib/format";
+import { PERIODS } from "@/lib/period";
 import { Badge } from "./Card";
 
 const TABS = [
   { href: "/dashboard-pos", label: "L-01 Atual (Captação)" },
   { href: "/dashboard-pos/visao-geral", label: "Visão Geral" },
 ];
+
+function PeriodFilter({ active, basePath }: { active: string; basePath: string }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      <span className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+        Período
+      </span>
+      {PERIODS.map((p) => {
+        const on = p.key === active;
+        return (
+          <Link
+            key={p.key}
+            href={`${basePath}?p=${p.key}`}
+            className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+              on
+                ? "bg-[#1e3a8a] text-white"
+                : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-100"
+            }`}
+          >
+            {p.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
 
 export function Header({
   data,
@@ -52,23 +79,26 @@ export function Header({
         </div>
       </div>
 
-      <nav className="mt-4 flex gap-1 border-t border-slate-100 pt-3">
-        {TABS.map((t) => {
-          const isActive = t.href === active;
-          return (
-            <Link
-              key={t.href}
-              href={t.href}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                isActive
-                  ? "bg-[#1e3a8a] text-white"
-                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-              }`}
-            >
-              {t.label}
-            </Link>
-          );
-        })}
+      <nav className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex gap-1">
+          {TABS.map((t) => {
+            const isActive = t.href === active;
+            return (
+              <Link
+                key={t.href}
+                href={t.href}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                  isActive
+                    ? "bg-[#1e3a8a] text-white"
+                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                }`}
+              >
+                {t.label}
+              </Link>
+            );
+          })}
+        </div>
+        <PeriodFilter active={data.period} basePath={active} />
       </nav>
     </header>
   );

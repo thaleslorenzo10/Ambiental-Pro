@@ -71,18 +71,26 @@ async function graph<T>(path: string, params: Record<string, string>): Promise<T
 
 type Action = { action_type: string; value: string };
 
-const LEAD_ACTIONS = new Set([
-  "lead",
-  "leadgen.other",
-  "onsite_conversion.lead_grouped",
+// Meta may return the SAME conversion under several action_types
+// (lead, offsite_conversion.fb_pixel_lead, onsite_conversion.lead_grouped).
+// Summing them double-counts, so we pick ONE by priority (pixel Lead first,
+// since this launch captures on an external landing page). Override via
+// META_LEAD_ACTION if the account optimizes for a different event.
+const LEAD_PRIORITY = [
   "offsite_conversion.fb_pixel_lead",
-]);
+  "onsite_conversion.lead_grouped",
+  "leadgen.other",
+  "lead",
+];
 
 function leadsFrom(actions?: Action[]): number {
   if (!actions) return 0;
-  return actions
-    .filter((a) => LEAD_ACTIONS.has(a.action_type))
-    .reduce((s, a) => s + Number(a.value || 0), 0);
+  const map: Record<string, number> = {};
+  for (const a of actions) map[a.action_type] = Number(a.value || 0);
+  const override = process.env.META_LEAD_ACTION;
+  if (override && map[override] != null) return map[override];
+  for (const t of LEAD_PRIORITY) if (map[t] != null) return map[t];
+  return 0;
 }
 
 function actionValue(actions: Action[] | undefined, types: string[]): number {

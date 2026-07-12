@@ -1,6 +1,7 @@
 import { fetchMetaMetrics, isMetaConfigured, type MetaMetrics } from "./meta/client";
 import { buildSnapshot } from "./meta/snapshot";
 import { fetchSheetLeads, isSheetsConfigured } from "./sheets/leads";
+import { periodFor, periodRange } from "./period";
 import type {
   DashboardData,
   LeadRow,
@@ -245,18 +246,20 @@ function overlaySheet(base: DashboardData, leads: LeadRow[]): DashboardData {
 }
 
 /** Single entry point the UI uses. Real Meta + Sheet data when configured; snapshot otherwise. */
-export async function getDashboardData(): Promise<DashboardData> {
+export async function getDashboardData(period?: string): Promise<DashboardData> {
   const goal = num(process.env.LAUNCH_LEAD_GOAL, 8000);
   const budgetTotal = num(process.env.LAUNCH_BUDGET_TOTAL, 32000);
   const cplTarget = num(process.env.LAUNCH_CPL_TARGET, 4);
   const salesGoal = num(process.env.LAUNCH_SALES_GOAL, 200);
   const ticket = num(process.env.LAUNCH_TICKET, 1500);
   const totalInvestment = num(process.env.LAUNCH_TOTAL_INVESTMENT, 40000);
+  const opt = periodFor(period);
   let data = buildSnapshot(goal, budgetTotal, cplTarget, salesGoal, ticket, totalInvestment);
+  data.period = opt.key;
 
   if (isMetaConfigured()) {
     try {
-      const m = await fetchMetaMetrics();
+      const m = await fetchMetaMetrics(opt.preset);
       if (m.campaigns.length) data = overlayMeta(data, m);
     } catch (err) {
       console.error("[meta] falling back to snapshot:", err);
@@ -265,12 +268,22 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   if (isSheetsConfigured()) {
     try {
-      const leads = await fetchSheetLeads();
+      let leads = await fetchSheetLeads();
+      const { since, until } = periodRange(period);
+      if (since || until) {
+        leads = leads.filter((l) => {
+          const t = new Date(l.createdTime);
+          if (since && t < since) return false;
+          if (until && t >= until) return false;
+          return true;
+        });
+      }
       data = overlaySheet(data, leads);
     } catch (err) {
       console.error("[sheets] keeping snapshot leads:", err);
     }
   }
 
+  data.period = opt.key;
   return data;
 }

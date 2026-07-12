@@ -28,8 +28,13 @@ import { CumulativeInvestment, CumulativeLeads, DailyEvolution } from "@/compone
 
 export const revalidate = 300;
 
-export default async function DashboardPos() {
-  const data = await getDashboardData();
+export default async function DashboardPos({
+  searchParams,
+}: {
+  searchParams: Promise<{ p?: string }>;
+}) {
+  const { p } = await searchParams;
+  const data = await getDashboardData(p);
 
   return (
     <main className="mx-auto max-w-7xl space-y-4 px-4 py-6 sm:px-6 lg:px-8">
