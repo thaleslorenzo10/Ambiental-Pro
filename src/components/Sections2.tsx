@@ -161,11 +161,13 @@ function SplitBar({
   hot,
   cold,
   fmt,
+  targetPct,
 }: {
   label: string;
   hot: number;
   cold: number;
   fmt: (n: number) => string;
+  targetPct?: number;
 }) {
   const total = hot + cold || 1;
   const hotPct = (hot / total) * 100;
@@ -180,7 +182,7 @@ function SplitBar({
           <span className="font-semibold text-blue-600">{pct(coldPct)} frio</span>
         </span>
       </div>
-      <div className="flex h-6 w-full overflow-hidden rounded-md">
+      <div className="relative flex h-6 w-full overflow-hidden rounded-md">
         <div
           className="flex items-center justify-start bg-orange-400 pl-2 text-[11px] font-semibold text-white"
           style={{ width: `${hotPct}%` }}
@@ -193,12 +195,30 @@ function SplitBar({
         >
           {coldPct > 12 ? fmt(cold) : ""}
         </div>
+        {targetPct != null && (
+          <div
+            className="absolute inset-y-0 z-10 border-l-2 border-dashed border-slate-900"
+            style={{ left: `${targetPct}%` }}
+            title={`meta ${targetPct}%`}
+          />
+        )}
       </div>
+      {targetPct != null && (
+        <div className="mt-0.5 text-[10px] text-slate-400" style={{ marginLeft: `calc(${targetPct}% - 20px)` }}>
+          ▲ meta {targetPct}%
+        </div>
+      )}
     </div>
   );
 }
 
-export function HotColdSplit({ temps }: { temps: TemperatureSplit[] }) {
+export function HotColdSplit({
+  temps,
+  targetPct = 50,
+}: {
+  temps: TemperatureSplit[];
+  targetPct?: number;
+}) {
   const total = temps.reduce((a, t) => a + t.spend, 0) || 1;
   const hot = temps.find((t) => t.temperature === "HOT") ?? {
     temperature: "HOT" as const,
@@ -217,14 +237,36 @@ export function HotColdSplit({ temps }: { temps: TemperatureSplit[] }) {
     COLD: { bg: "from-blue-50 to-white", badge: "blue" },
     "—": { bg: "from-slate-50 to-white", badge: "blue" },
   };
+  const hotPctActual = (hot.spend / total) * 100;
+  const idealHotSpend = total * (targetPct / 100);
+  const gap = idealHotSpend - hot.spend; // >0 → falta em quente
+  const balanced = Math.abs(hotPctActual - targetPct) <= 5;
   return (
     <Card>
-      <SectionTitle hint="Público quente (HOT) x frio (COLD) — investimento e leads">
+      <SectionTitle hint={`Meta: ${targetPct}% quente / ${100 - targetPct}% frio`}>
         Proporção quente x frio (HOT + COLD)
       </SectionTitle>
-      <div className="mb-4 space-y-3">
-        <SplitBar label="Investimento" hot={hot.spend} cold={cold.spend} fmt={money} />
+      <div className="mb-4 space-y-4">
+        <SplitBar
+          label="Investimento"
+          hot={hot.spend}
+          cold={cold.spend}
+          fmt={money}
+          targetPct={targetPct}
+        />
         <SplitBar label="Leads" hot={hot.leads} cold={cold.leads} fmt={num} />
+      </div>
+
+      <div
+        className={`mb-4 rounded-lg px-3 py-2 text-sm font-medium ${
+          balanced ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+        }`}
+      >
+        {balanced
+          ? `✅ Distribuição equilibrada — quente em ${pct(hotPctActual)} (meta ${targetPct}%).`
+          : gap > 0
+            ? `⚠️ Quente está em ${pct(hotPctActual)} (meta ${targetPct}%). Para equilibrar, direcione ~${money(gap)} a mais para público QUENTE.`
+            : `⚠️ Quente está em ${pct(hotPctActual)} (acima da meta ${targetPct}%). Reforce o público FRIO em ~${money(-gap)}.`}
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {temps.map((t) => {

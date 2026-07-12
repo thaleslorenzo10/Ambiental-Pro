@@ -231,6 +231,7 @@ export interface DashboardData {
   goalLeads: number;
   cplTarget: number;
   salesGoal: number;
+  hotTargetPct: number; // meta de % do investimento em público quente
   sales: SalesProjection;
   totals: DashboardTotals;
   budget: Budget;

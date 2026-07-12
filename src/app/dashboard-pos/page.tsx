@@ -147,7 +147,7 @@ export default async function DashboardPos({
 
       {/* HOT + COLD */}
       <section id="hotcold" className="scroll-mt-16">
-        <HotColdSplit temps={data.temperatures} />
+        <HotColdSplit temps={data.temperatures} targetPct={data.hotTargetPct} />
       </section>
 
       {/* Vendas / ROAS */}

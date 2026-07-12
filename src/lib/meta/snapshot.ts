@@ -61,6 +61,7 @@ export function buildSnapshot(
   salesGoal = 200,
   ticket = 1500,
   totalInvestment = 40000,
+  hotTargetPct = 50,
 ): DashboardData {
   const rand = seeded(2607);
   // Captação: 29/06 → 20/07 (22 dias). "Hoje" no contexto = 11/07 (13º dia).
@@ -417,6 +418,7 @@ export function buildSnapshot(
     goalLeads,
     cplTarget,
     salesGoal,
+    hotTargetPct,
     sales,
     totals: {
       spend: TOTAL_SPEND,

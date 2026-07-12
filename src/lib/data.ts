@@ -441,8 +441,17 @@ export async function getDashboardData(period?: string): Promise<DashboardData> 
   const salesGoal = num(process.env.LAUNCH_SALES_GOAL, 200);
   const ticket = num(process.env.LAUNCH_TICKET, 1500);
   const totalInvestment = num(process.env.LAUNCH_TOTAL_INVESTMENT, 40000);
+  const hotTargetPct = num(process.env.LAUNCH_HOT_TARGET_PCT, 50);
   const opt = periodFor(period);
-  let data = buildSnapshot(goal, budgetTotal, cplTarget, salesGoal, ticket, totalInvestment);
+  let data = buildSnapshot(
+    goal,
+    budgetTotal,
+    cplTarget,
+    salesGoal,
+    ticket,
+    totalInvestment,
+    hotTargetPct,
+  );
   data.period = opt.key;
 
   if (isMetaConfigured()) {
