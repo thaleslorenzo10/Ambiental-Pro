@@ -25,7 +25,12 @@ import {
   SecondaryMetricsRow,
   SubNav,
 } from "@/components/Sections2";
-import { CumulativeInvestment, CumulativeLeads, DailyEvolution } from "@/components/Charts";
+import {
+  CplPerDay,
+  CumulativeInvestment,
+  CumulativeLeads,
+  DailyEvolution,
+} from "@/components/Charts";
 
 export const revalidate = 300;
 
@@ -89,12 +94,18 @@ export default async function DashboardPos({
       </section>
 
       {/* Evolução */}
-      <section id="evolucao" className="scroll-mt-16">
+      <section id="evolucao" className="scroll-mt-16 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
-          <SectionTitle hint="Investido, leads e CPL por dia (linha vermelha = CPL alvo)">
+          <SectionTitle hint="Investido e leads por dia">
             Evolução diária
           </SectionTitle>
-          <DailyEvolution data={data.daily} cplTarget={data.cplTarget} />
+          <DailyEvolution data={data.daily} />
+        </Card>
+        <Card>
+          <SectionTitle dot="#7c3aed" hint="Linha vermelha = CPL alvo">
+            CPL por dia
+          </SectionTitle>
+          <CplPerDay data={data.daily} cplTarget={data.cplTarget} />
         </Card>
       </section>
 

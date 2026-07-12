@@ -33,13 +33,65 @@ const tooltip = {
   labelStyle: { color: "#64748b", fontWeight: 600 },
 };
 
-export function DailyEvolution({
+export function CplPerDay({
   data,
   cplTarget,
 }: {
   data: DailyMetric[];
   cplTarget?: number;
 }) {
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <ComposedChart data={data} margin={{ left: -8, right: 8, top: 8 }}>
+        <defs>
+          <linearGradient id="cplFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#7c3aed" stopOpacity={0.2} />
+            <stop offset="100%" stopColor="#7c3aed" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+        <XAxis dataKey="date" tickFormatter={shortDate} {...AXIS} tickLine={false} />
+        <YAxis
+          tickFormatter={(v) => `R$${v}`}
+          {...AXIS}
+          tickLine={false}
+          axisLine={false}
+          domain={[0, "auto"]}
+        />
+        <Tooltip
+          {...tooltip}
+          labelFormatter={(l) => shortDate(String(l))}
+          formatter={(v: number) => [money2(v), "CPL"]}
+        />
+        <Area
+          type="monotone"
+          dataKey="cpl"
+          name="CPL"
+          stroke="#7c3aed"
+          strokeWidth={2.5}
+          fill="url(#cplFill)"
+          dot={false}
+        />
+        {cplTarget ? (
+          <ReferenceLine
+            y={cplTarget}
+            stroke="#dc2626"
+            strokeDasharray="6 4"
+            strokeWidth={1.5}
+            label={{
+              value: `alvo ${money2(cplTarget)}`,
+              position: "insideTopRight",
+              fill: "#dc2626",
+              fontSize: 11,
+            }}
+          />
+        ) : null}
+      </ComposedChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function DailyEvolution({ data }: { data: DailyMetric[] }) {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <ComposedChart data={data} margin={{ left: -8, right: 8, top: 8 }}>
@@ -89,31 +141,6 @@ export function DailyEvolution({
           strokeWidth={2.5}
           dot={false}
         />
-        <Line
-          yAxisId="r"
-          type="monotone"
-          dataKey="cpl"
-          name="CPL"
-          stroke="#7c3aed"
-          strokeWidth={2}
-          strokeDasharray="4 3"
-          dot={false}
-        />
-        {cplTarget ? (
-          <ReferenceLine
-            yAxisId="r"
-            y={cplTarget}
-            stroke="#dc2626"
-            strokeDasharray="6 4"
-            strokeWidth={1.5}
-            label={{
-              value: `CPL alvo ${money2(cplTarget)}`,
-              position: "insideTopRight",
-              fill: "#dc2626",
-              fontSize: 11,
-            }}
-          />
-        ) : null}
       </ComposedChart>
     </ResponsiveContainer>
   );
