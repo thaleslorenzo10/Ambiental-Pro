@@ -58,6 +58,8 @@ export function buildSnapshot(
   budgetTotal = 32000,
   cplTarget = 4,
   salesGoal = 200,
+  ticket = 1500,
+  totalInvestment = 40000,
 ): DashboardData {
   const rand = seeded(2607);
   // Captação: 29/06 → 20/07 (22 dias). "Hoje" no contexto = 11/07 (13º dia).
@@ -185,6 +187,22 @@ export function buildSnapshot(
   const daysTotal = 22; // 29/06 → 20/07
   const daysElapsed = days;
   const invested = TOTAL_SPEND;
+
+  // Sales / ROAS projection (fase de vendas — carrinho 22–27/07)
+  const revenueGoal = salesGoal * ticket;
+  const sales = {
+    salesGoal,
+    ticket,
+    revenueGoal,
+    totalInvestment,
+    roasGoal: totalInvestment ? +(revenueGoal / totalInvestment).toFixed(2) : 0,
+    cacGoal: salesGoal ? +(totalInvestment / salesGoal).toFixed(2) : 0,
+    leadToSaleRate: goalLeads ? +((salesGoal / goalLeads) * 100).toFixed(2) : 0,
+    breakEvenSales: ticket ? Math.ceil(totalInvestment / ticket) : 0,
+    salesDone: 0,
+    revenueDone: 0,
+    roasReal: 0,
+  };
 
   // Secondary metrics
   const frequency = 2.4 + rand() * 0.5;
@@ -376,6 +394,7 @@ export function buildSnapshot(
     goalLeads,
     cplTarget,
     salesGoal,
+    sales,
     totals: {
       spend: TOTAL_SPEND,
       leadsReal,

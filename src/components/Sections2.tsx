@@ -4,6 +4,7 @@ import type {
   DashboardData,
   PlacementBreakdown,
   Projection,
+  SalesProjection,
   SecondaryMetrics,
   TemperatureSplit,
 } from "@/lib/meta/types";
@@ -25,6 +26,7 @@ const NAV = [
   { id: "placement", label: "Placement" },
   { id: "paises", label: "Países" },
   { id: "hotcold", label: "HOT+COLD" },
+  { id: "vendas", label: "Vendas" },
   { id: "leads", label: "Leads" },
 ];
 
@@ -440,6 +442,129 @@ export function CumulativeSources({
         Fontes de tráfego acumuladas
       </SectionTitle>
       <SourcesStackedArea data={series} keys={keys} />
+    </Card>
+  );
+}
+
+/* ---------------------------- Sales / ROAS -------------------------------- */
+
+export function SalesCard({ s }: { s: SalesProjection }) {
+  const started = s.salesDone > 0;
+  return (
+    <Card>
+      <SectionTitle
+        dot="#059669"
+        hint="Fase de vendas — carrinho 22/07 → 27/07 · projeção na meta"
+      >
+        Vendas & Retorno {started ? "" : "(projeção)"}
+      </SectionTitle>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Faturamento meta
+          </p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700 tnum">{money(s.revenueGoal)}</p>
+          <p className="mt-0.5 text-xs text-slate-400">
+            {num(s.salesGoal)} vendas × {money(s.ticket)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            ROAS na meta
+          </p>
+          <p className="mt-1 text-2xl font-bold text-[#1e3a8a] tnum">
+            {s.roasGoal.toFixed(1)}x
+          </p>
+          <p className="mt-0.5 text-xs text-slate-400">
+            invest. total {money(s.totalInvestment)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            {started ? "ROAS real" : "Vendas realizadas"}
+          </p>
+          <p className="mt-1 text-2xl font-bold text-slate-800 tnum">
+            {started ? `${s.roasReal.toFixed(1)}x` : num(s.salesDone)}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-400">
+            {started ? money(s.revenueDone) : "aguardando abertura do carrinho"}
+          </p>
+        </div>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <MiniKpi label="Ticket médio" value={money(s.ticket)} />
+        <MiniKpi label="CAC alvo (custo/venda)" value={money(s.cacGoal)} />
+        <MiniKpi label="Conversão lead→venda" value={pct(s.leadToSaleRate)} />
+        <MiniKpi label="Break-even" value={`${num(s.breakEvenSales)} vendas`} />
+      </div>
+      <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
+        💰 Bastam <b>{num(s.breakEvenSales)} vendas</b> para pagar todo o investimento de mídia
+        ({money(s.totalInvestment)}). A meta de {num(s.salesGoal)} vendas projeta ROAS {s.roasGoal.toFixed(1)}x.
+      </p>
+    </Card>
+  );
+}
+
+function MiniKpi({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-slate-100 bg-white px-3 py-2">
+      <p className="text-[10px] uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="mt-0.5 text-base font-bold text-slate-800 tnum">{value}</p>
+    </div>
+  );
+}
+
+/* --------------------- Creatives to scale / pause ------------------------- */
+
+export function CreativesToScale({ ads }: { ads: AdEntityRow[] }) {
+  const withLeads = ads.filter((a) => a.leads >= 3);
+  const byCpl = [...withLeads].sort((a, b) => a.cpl - b.cpl);
+  const scale = byCpl.slice(0, 3);
+  const pause = [...withLeads].sort((a, b) => b.cpl - a.cpl).slice(0, 3);
+
+  const Row = ({ a, good }: { a: AdEntityRow; good: boolean }) => (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 bg-white px-3 py-2">
+      <div className="min-w-0">
+        <p className="truncate text-sm font-medium text-slate-800">{a.name}</p>
+        <p className="truncate text-[11px] text-slate-400">
+          {num(a.leads)} leads · {money(a.spend)}
+        </p>
+      </div>
+      <span className={`shrink-0 text-sm font-bold tnum ${good ? "text-emerald-600" : "text-rose-600"}`}>
+        {money2(a.cpl)}
+      </span>
+    </div>
+  );
+
+  return (
+    <Card>
+      <SectionTitle hint="Ranking por CPL — decisões de escala">
+        Criativos: escalar x pausar
+      </SectionTitle>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <Badge color="green">▲ Escalar</Badge>
+            <span className="text-xs text-slate-400">menor CPL</span>
+          </div>
+          <div className="space-y-2">
+            {scale.map((a) => (
+              <Row key={a.id} a={a} good />
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <Badge color="red">▼ Revisar / pausar</Badge>
+            <span className="text-xs text-slate-400">maior CPL</span>
+          </div>
+          <div className="space-y-2">
+            {pause.map((a) => (
+              <Row key={a.id} a={a} good={false} />
+            ))}
+          </div>
+        </div>
+      </div>
     </Card>
   );
 }

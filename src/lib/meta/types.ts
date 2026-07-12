@@ -131,6 +131,20 @@ export interface SourceSeriesPoint {
   [source: string]: number | string;
 }
 
+export interface SalesProjection {
+  salesGoal: number;
+  ticket: number;
+  revenueGoal: number;
+  totalInvestment: number;
+  roasGoal: number;
+  cacGoal: number;
+  leadToSaleRate: number; // %
+  breakEvenSales: number;
+  salesDone: number;
+  revenueDone: number;
+  roasReal: number;
+}
+
 export interface PlacementBreakdown {
   placement: string;
   spend: number;
@@ -199,6 +213,7 @@ export interface DashboardData {
   goalLeads: number;
   cplTarget: number;
   salesGoal: number;
+  sales: SalesProjection;
   totals: DashboardTotals;
   budget: Budget;
   tracking: Tracking;

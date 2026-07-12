@@ -2,6 +2,7 @@ import { getDashboardData } from "@/lib/data";
 import { Card, SectionTitle } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { KpiStrip } from "@/components/Sections";
+import { SalesCard } from "@/components/Sections2";
 import { PhaseCard } from "@/components/PhaseCard";
 import { CumulativeInvestment } from "@/components/Charts";
 import { money, num } from "@/lib/format";
@@ -43,6 +44,8 @@ export default async function VisaoGeral() {
           <PhaseCard key={p.id} phase={p} />
         ))}
       </section>
+
+      <SalesCard s={data.sales} />
 
       <footer className="pt-4 text-center text-xs text-slate-400">
         {data.launch} · {data.client} · atualizado a cada 5 min · fonte:{" "}

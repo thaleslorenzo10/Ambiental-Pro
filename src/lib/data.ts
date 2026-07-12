@@ -250,7 +250,9 @@ export async function getDashboardData(): Promise<DashboardData> {
   const budgetTotal = num(process.env.LAUNCH_BUDGET_TOTAL, 32000);
   const cplTarget = num(process.env.LAUNCH_CPL_TARGET, 4);
   const salesGoal = num(process.env.LAUNCH_SALES_GOAL, 200);
-  let data = buildSnapshot(goal, budgetTotal, cplTarget, salesGoal);
+  const ticket = num(process.env.LAUNCH_TICKET, 1500);
+  const totalInvestment = num(process.env.LAUNCH_TOTAL_INVESTMENT, 40000);
+  let data = buildSnapshot(goal, budgetTotal, cplTarget, salesGoal, ticket, totalInvestment);
 
   if (isMetaConfigured()) {
     try {

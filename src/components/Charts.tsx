@@ -10,6 +10,7 @@ import {
   Line,
   Pie,
   PieChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -32,7 +33,13 @@ const tooltip = {
   labelStyle: { color: "#64748b", fontWeight: 600 },
 };
 
-export function DailyEvolution({ data }: { data: DailyMetric[] }) {
+export function DailyEvolution({
+  data,
+  cplTarget,
+}: {
+  data: DailyMetric[];
+  cplTarget?: number;
+}) {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <ComposedChart data={data} margin={{ left: -8, right: 8, top: 8 }}>
@@ -90,6 +97,76 @@ export function DailyEvolution({ data }: { data: DailyMetric[] }) {
           stroke="#7c3aed"
           strokeWidth={2}
           strokeDasharray="4 3"
+          dot={false}
+        />
+        {cplTarget ? (
+          <ReferenceLine
+            yAxisId="r"
+            y={cplTarget}
+            stroke="#dc2626"
+            strokeDasharray="6 4"
+            strokeWidth={1.5}
+            label={{
+              value: `CPL alvo ${money2(cplTarget)}`,
+              position: "insideTopRight",
+              fill: "#dc2626",
+              fontSize: 11,
+            }}
+          />
+        ) : null}
+      </ComposedChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function CumulativeLeads({
+  data,
+  goal,
+  daysTotal,
+}: {
+  data: DailyMetric[];
+  goal: number;
+  daysTotal: number;
+}) {
+  const idealPerDay = daysTotal ? goal / daysTotal : 0;
+  const chart = data.map((d, i) => ({
+    date: d.date,
+    leads: d.cumulativeLeads,
+    ideal: Math.round(idealPerDay * (i + 1)),
+  }));
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <ComposedChart data={chart} margin={{ left: -8, right: 8, top: 8 }}>
+        <defs>
+          <linearGradient id="leadsCumFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#7c3aed" stopOpacity={0.25} />
+            <stop offset="100%" stopColor="#7c3aed" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+        <XAxis dataKey="date" tickFormatter={shortDate} {...AXIS} tickLine={false} />
+        <YAxis tickFormatter={compact} {...AXIS} tickLine={false} axisLine={false} />
+        <Tooltip
+          {...tooltip}
+          labelFormatter={(l) => shortDate(String(l))}
+          formatter={(v: number, name) => [num(v), name]}
+        />
+        <Legend wrapperStyle={{ fontSize: 12 }} />
+        <Area
+          type="monotone"
+          dataKey="leads"
+          name="Leads (real)"
+          stroke="#7c3aed"
+          strokeWidth={2.5}
+          fill="url(#leadsCumFill)"
+        />
+        <Line
+          type="monotone"
+          dataKey="ideal"
+          name="Meta (pace ideal)"
+          stroke="#94a3b8"
+          strokeWidth={1.5}
+          strokeDasharray="5 4"
           dot={false}
         />
       </ComposedChart>

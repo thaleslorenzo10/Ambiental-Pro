@@ -14,15 +14,17 @@ import {
 import {
   AdEntityTable,
   CountrySection,
+  CreativesToScale,
   CumulativeSources,
   HotColdSplit,
   PacingCard,
   PlacementSection,
   ProjectionCard,
+  SalesCard,
   SecondaryMetricsRow,
   SubNav,
 } from "@/components/Sections2";
-import { CumulativeInvestment, DailyEvolution } from "@/components/Charts";
+import { CumulativeInvestment, CumulativeLeads, DailyEvolution } from "@/components/Charts";
 
 export const revalidate = 300;
 
@@ -50,12 +52,24 @@ export default async function DashboardPos() {
           <ProjectionCard p={data.projection} />
           <PacingCard p={data.projection} />
         </div>
-        <Card>
-          <SectionTitle hint="Ritmo real x pace ideal até o fim da captação">
-            Investimento acumulado
-          </SectionTitle>
-          <CumulativeInvestment data={data.daily} budget={data.budget} />
-        </Card>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Card>
+            <SectionTitle hint="Ritmo real x pace ideal até o fim da captação">
+              Investimento acumulado
+            </SectionTitle>
+            <CumulativeInvestment data={data.daily} budget={data.budget} />
+          </Card>
+          <Card>
+            <SectionTitle dot="#7c3aed" hint="Leads reais x linha da meta">
+              Leads acumulados vs meta
+            </SectionTitle>
+            <CumulativeLeads
+              data={data.daily}
+              goal={data.goalLeads}
+              daysTotal={data.budget.daysTotal}
+            />
+          </Card>
+        </div>
       </section>
 
       {/* Canais */}
@@ -71,8 +85,10 @@ export default async function DashboardPos() {
       {/* Evolução */}
       <section id="evolucao" className="scroll-mt-16">
         <Card>
-          <SectionTitle hint="Investido, leads e CPL por dia">Evolução diária</SectionTitle>
-          <DailyEvolution data={data.daily} />
+          <SectionTitle hint="Investido, leads e CPL por dia (linha vermelha = CPL alvo)">
+            Evolução diária
+          </SectionTitle>
+          <DailyEvolution data={data.daily} cplTarget={data.cplTarget} />
         </Card>
       </section>
 
@@ -92,7 +108,8 @@ export default async function DashboardPos() {
       </section>
 
       {/* Anúncios */}
-      <section id="anuncios" className="scroll-mt-16">
+      <section id="anuncios" className="scroll-mt-16 space-y-4">
+        <CreativesToScale ads={data.ads} />
         <AdEntityTable
           title="Anúncios — Meta"
           hint="Criativos ativos no lançamento"
@@ -114,6 +131,11 @@ export default async function DashboardPos() {
       {/* HOT + COLD */}
       <section id="hotcold" className="scroll-mt-16">
         <HotColdSplit temps={data.temperatures} />
+      </section>
+
+      {/* Vendas / ROAS */}
+      <section id="vendas" className="scroll-mt-16">
+        <SalesCard s={data.sales} />
       </section>
 
       {/* Leads */}
