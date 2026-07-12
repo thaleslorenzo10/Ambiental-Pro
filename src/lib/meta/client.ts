@@ -1,8 +1,12 @@
 import type {
+  AdEntityRow,
   CampaignRow,
   ChannelStats,
+  CountryBreakdown,
   DailyMetric,
   Funnel,
+  PlacementBreakdown,
+  SecondaryMetrics,
   Temperature,
   TemperatureSplit,
 } from "./types";
@@ -22,6 +26,10 @@ const GRAPH = "https://graph.facebook.com";
 
 export interface MetaMetrics {
   campaigns: CampaignRow[];
+  adsets: AdEntityRow[];
+  ads: AdEntityRow[];
+  placements: PlacementBreakdown[];
+  countries: CountryBreakdown[];
   daily: { date: string; spend: number; leadsPixel: number }[];
   totalSpend: number;
   impressions: number;
@@ -29,6 +37,7 @@ export interface MetaMetrics {
   ctr: number;
   cpm: number;
   leadsPixel: number;
+  secondary: SecondaryMetrics;
   temperatures: TemperatureSplit[];
   funnel: Funnel;
   channels: ChannelStats[];
@@ -60,6 +69,8 @@ async function graph<T>(path: string, params: Record<string, string>): Promise<T
   return (await res.json()) as T;
 }
 
+type Action = { action_type: string; value: string };
+
 const LEAD_ACTIONS = new Set([
   "lead",
   "leadgen.other",
@@ -67,11 +78,17 @@ const LEAD_ACTIONS = new Set([
   "offsite_conversion.fb_pixel_lead",
 ]);
 
-function leadsFrom(actions?: { action_type: string; value: string }[]): number {
+function leadsFrom(actions?: Action[]): number {
   if (!actions) return 0;
   return actions
     .filter((a) => LEAD_ACTIONS.has(a.action_type))
     .reduce((s, a) => s + Number(a.value || 0), 0);
+}
+
+function actionValue(actions: Action[] | undefined, types: string[]): number {
+  if (!actions) return 0;
+  const set = new Set(types);
+  return actions.filter((a) => set.has(a.action_type)).reduce((s, a) => s + Number(a.value || 0), 0);
 }
 
 function temperatureOf(name: string): Temperature {
@@ -84,25 +101,87 @@ function temperatureOf(name: string): Temperature {
 interface Row {
   campaign_id?: string;
   campaign_name?: string;
+  adset_id?: string;
+  adset_name?: string;
+  ad_id?: string;
+  ad_name?: string;
   date_start?: string;
   spend?: string;
   impressions?: string;
+  reach?: string;
   clicks?: string;
-  actions?: { action_type: string; value: string }[];
+  frequency?: string;
+  cpm?: string;
+  cpc?: string;
+  ctr?: string;
+  inline_link_clicks?: string;
+  publisher_platform?: string;
+  platform_position?: string;
+  country?: string;
+  actions?: Action[];
 }
 
 const TAG_FILTER = (tag: string) =>
   JSON.stringify([{ field: "campaign.name", operator: "CONTAIN", value: tag }]);
 
+function entityRow(r: Row, kind: "adset" | "ad"): AdEntityRow {
+  const spend = Number(r.spend || 0);
+  const impressions = Number(r.impressions || 0);
+  const clicks = Number(r.clicks || 0);
+  const leads = leadsFrom(r.actions);
+  return {
+    id: (kind === "adset" ? r.adset_id : r.ad_id) || `${kind}_${Math.random()}`,
+    name: (kind === "adset" ? r.adset_name : r.ad_name) || "",
+    campaign: r.campaign_name,
+    temperature: temperatureOf(r.campaign_name || ""),
+    spend,
+    impressions,
+    ctr: impressions ? +((clicks / impressions) * 100).toFixed(2) : 0,
+    leads,
+    cpl: leads ? +(spend / leads).toFixed(2) : 0,
+  };
+}
+
+// Friendly labels for Meta platform_position values.
+function placementLabel(pos: string): string {
+  const p = pos.toLowerCase();
+  if (p.includes("feed")) return "Feed";
+  if (p.includes("story") || p.includes("stories")) return "Stories";
+  if (p.includes("reels")) return "Reels";
+  if (p.includes("explore")) return "Explore";
+  if (p.includes("search")) return "Search";
+  if (p.includes("marketplace")) return "Marketplace";
+  return "Outros";
+}
+
+const COUNTRY_NAMES: Record<string, string> = {
+  BR: "Brasil",
+  PT: "Portugal",
+  US: "Estados Unidos",
+  AR: "Argentina",
+  ES: "Espanha",
+  MX: "México",
+};
+
+async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    console.error("[meta] optional fetch failed:", err);
+    return fallback;
+  }
+}
+
 export async function fetchMetaMetrics(datePreset = "maximum"): Promise<MetaMetrics> {
   const { account, tag } = cfg();
+  const filtering = TAG_FILTER(tag);
 
-  const [campaignRes, dailyRes] = await Promise.all([
+  const [campaignRes, dailyRes, totalsRes] = await Promise.all([
     graph<{ data: Row[] }>(`${account}/insights`, {
       level: "campaign",
       date_preset: datePreset,
       fields: "campaign_id,campaign_name,spend,impressions,clicks,actions",
-      filtering: TAG_FILTER(tag),
+      filtering,
       limit: "200",
     }),
     graph<{ data: Row[] }>(`${account}/insights`, {
@@ -110,9 +189,67 @@ export async function fetchMetaMetrics(datePreset = "maximum"): Promise<MetaMetr
       date_preset: datePreset,
       time_increment: "1",
       fields: "spend,actions",
-      filtering: TAG_FILTER(tag),
+      filtering,
       limit: "500",
     }),
+    graph<{ data: Row[] }>(`${account}/insights`, {
+      level: "account",
+      date_preset: datePreset,
+      fields:
+        "spend,impressions,reach,clicks,frequency,cpm,cpc,ctr,inline_link_clicks,actions",
+      filtering,
+      limit: "1",
+    }),
+  ]);
+
+  // Optional richer breakdowns — never break the dashboard if they fail.
+  const [adsetRes, adRes, placementRes, countryRes] = await Promise.all([
+    safe(
+      () =>
+        graph<{ data: Row[] }>(`${account}/insights`, {
+          level: "adset",
+          date_preset: datePreset,
+          fields: "adset_id,adset_name,campaign_name,spend,impressions,clicks,actions",
+          filtering,
+          limit: "200",
+        }),
+      { data: [] as Row[] },
+    ),
+    safe(
+      () =>
+        graph<{ data: Row[] }>(`${account}/insights`, {
+          level: "ad",
+          date_preset: datePreset,
+          fields: "ad_id,ad_name,campaign_name,spend,impressions,clicks,actions",
+          filtering,
+          limit: "300",
+        }),
+      { data: [] as Row[] },
+    ),
+    safe(
+      () =>
+        graph<{ data: Row[] }>(`${account}/insights`, {
+          level: "account",
+          date_preset: datePreset,
+          fields: "spend,actions",
+          breakdowns: "platform_position",
+          filtering,
+          limit: "100",
+        }),
+      { data: [] as Row[] },
+    ),
+    safe(
+      () =>
+        graph<{ data: Row[] }>(`${account}/insights`, {
+          level: "account",
+          date_preset: datePreset,
+          fields: "spend,actions",
+          breakdowns: "country",
+          filtering,
+          limit: "100",
+        }),
+      { data: [] as Row[] },
+    ),
   ]);
 
   const campaigns: CampaignRow[] = campaignRes.data.map((r) => {
@@ -140,6 +277,21 @@ export async function fetchMetaMetrics(datePreset = "maximum"): Promise<MetaMetr
   const ctr = impressions ? +((clicks / impressions) * 100).toFixed(2) : 0;
   const cpm = impressions ? +((totalSpend / impressions) * 1000).toFixed(2) : 0;
 
+  // Account totals row → real secondary metrics + accurate LPV.
+  const t = totalsRes.data[0] || {};
+  const landingPageViews = actionValue(t.actions, [
+    "landing_page_view",
+    "omni_landing_page_view",
+  ]) || Math.round(clicks * 0.72);
+  const secondary: SecondaryMetrics = {
+    ctr: t.ctr ? +Number(t.ctr).toFixed(2) : ctr,
+    cpm: t.cpm ? +Number(t.cpm).toFixed(2) : cpm,
+    frequency: t.frequency ? +Number(t.frequency).toFixed(2) : 0,
+    landingPageViews,
+    linkClicks: Number(t.inline_link_clicks || 0) || clicks,
+    costPerClick: t.cpc ? +Number(t.cpc).toFixed(2) : clicks ? +(totalSpend / clicks).toFixed(2) : 0,
+  };
+
   const daily = dailyRes.data
     .map((r) => ({
       date: r.date_start || "",
@@ -158,10 +310,9 @@ export async function fetchMetaMetrics(datePreset = "maximum"): Promise<MetaMetr
     temps[c.temperature].leads += c.leads;
   }
   const temperatures = (Object.values(temps) as TemperatureSplit[])
-    .filter((t) => t.spend > 0)
-    .map((t) => ({ ...t, cpl: t.leads ? +(t.spend / t.leads).toFixed(2) : 0 }));
+    .filter((x) => x.spend > 0)
+    .map((x) => ({ ...x, cpl: x.leads ? +(x.spend / x.leads).toFixed(2) : 0 }));
 
-  const landingPageViews = Math.round(clicks * 0.72);
   const funnel: Funnel = {
     impressions,
     clicks,
@@ -189,8 +340,45 @@ export async function fetchMetaMetrics(datePreset = "maximum"): Promise<MetaMetr
     { channel: "google", label: "Google Ads", active: false, spend: 0, leads: 0, cpl: 0, impressions: 0, clicks: 0, ctr: 0 },
   ];
 
+  const adsets = adsetRes.data.map((r) => entityRow(r, "adset")).sort((a, b) => b.spend - a.spend);
+  const ads = adRes.data.map((r) => entityRow(r, "ad")).sort((a, b) => b.spend - a.spend);
+
+  // Placement breakdown (aggregate platform_position values into friendly labels)
+  const placeMap = new Map<string, PlacementBreakdown>();
+  for (const r of placementRes.data) {
+    const label = placementLabel(r.platform_position || "");
+    const e = placeMap.get(label) || { placement: label, spend: 0, leads: 0, cpl: 0 };
+    e.spend += Number(r.spend || 0);
+    e.leads += leadsFrom(r.actions);
+    placeMap.set(label, e);
+  }
+  const placements = Array.from(placeMap.values())
+    .map((p) => ({ ...p, spend: +p.spend.toFixed(2), cpl: p.leads ? +(p.spend / p.leads).toFixed(2) : 0 }))
+    .sort((a, b) => b.spend - a.spend);
+
+  // Country breakdown
+  const countrySpend = countryRes.data.reduce((s, r) => s + Number(r.spend || 0), 0) || 1;
+  const countries: CountryBreakdown[] = countryRes.data
+    .map((r) => {
+      const spend = Number(r.spend || 0);
+      const leads = leadsFrom(r.actions);
+      return {
+        country: COUNTRY_NAMES[r.country || ""] || r.country || "—",
+        spend: +spend.toFixed(2),
+        leads,
+        cpl: leads ? +(spend / leads).toFixed(2) : 0,
+        pctSpend: +((spend / countrySpend) * 100).toFixed(1),
+      };
+    })
+    .sort((a, b) => b.spend - a.spend)
+    .slice(0, 8);
+
   return {
     campaigns: campaigns.sort((a, b) => b.spend - a.spend),
+    adsets,
+    ads,
+    placements,
+    countries,
     daily,
     totalSpend,
     impressions,
@@ -198,6 +386,7 @@ export async function fetchMetaMetrics(datePreset = "maximum"): Promise<MetaMetr
     ctr,
     cpm,
     leadsPixel,
+    secondary,
     temperatures,
     funnel,
     channels,

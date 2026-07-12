@@ -39,6 +39,21 @@ function overlayMeta(base: DashboardData, m: MetaMetrics): DashboardData {
   budget.daysElapsed = daily.length || base.budget.daysElapsed;
   budget.paceReal = budget.daysElapsed ? +(m.totalSpend / budget.daysElapsed).toFixed(2) : 0;
 
+  // Projection recomputed from real pace (leads refined again in overlaySheet).
+  const daysRemaining = Math.max(budget.daysTotal - budget.daysElapsed, 0);
+  const leadsPerDay = budget.daysElapsed ? leadsPixel / budget.daysElapsed : 0;
+  const leadsProjected = Math.round(leadsPixel + leadsPerDay * daysRemaining);
+  const spendProjected = +(m.totalSpend + budget.paceReal * daysRemaining).toFixed(2);
+  const projection = {
+    ...base.projection,
+    daysRemaining,
+    leadsCurrent: leadsPixel,
+    leadsProjected,
+    spendCurrent: m.totalSpend,
+    spendProjected,
+    onPace: leadsProjected >= base.projection.leadsGoal,
+  };
+
   return {
     ...base,
     source: "meta",
@@ -53,11 +68,33 @@ function overlayMeta(base: DashboardData, m: MetaMetrics): DashboardData {
       cpm: m.cpm,
     },
     budget,
+    projection,
+    secondary: m.secondary,
     channels: m.channels,
     temperatures: m.temperatures,
     funnel: m.funnel,
     campaigns: m.campaigns,
+    adsets: m.adsets.length ? m.adsets : base.adsets,
+    ads: m.ads.length ? m.ads : base.ads,
+    placements: m.placements.length ? m.placements : base.placements,
+    countries: m.countries.length ? m.countries : base.countries,
     daily: daily.length ? daily : base.daily,
+    // captação phase reflects live spend/leads
+    phases: base.phases.map((p) =>
+      p.id === "captacao"
+        ? {
+            ...p,
+            spent: m.totalSpend,
+            leads: leadsPixel,
+            cpl: leadsPixel ? +(m.totalSpend / leadsPixel).toFixed(2) : 0,
+            channels: p.channels.map((ch) =>
+              ch.channel === "meta"
+                ? { ...ch, spent: m.totalSpend, leads: leadsPixel }
+                : ch,
+            ),
+          }
+        : p,
+    ),
     tracking: {
       metaPixelLeads: leadsPixel,
       sheetLeads: base.tracking.sheetLeads,
@@ -120,6 +157,12 @@ function overlaySheet(base: DashboardData, leads: LeadRow[]): DashboardData {
     (a, b) => +new Date(b.createdTime) - +new Date(a.createdTime),
   );
 
+  // refine projection with real sheet leads
+  const daysElapsed = base.budget.daysElapsed || daily.length;
+  const daysRemaining = base.projection.daysRemaining;
+  const leadsPerDay = daysElapsed ? total / daysElapsed : 0;
+  const leadsProjected = Math.round(total + leadsPerDay * daysRemaining);
+
   return {
     ...base,
     leadsFromSheet: true,
@@ -130,6 +173,17 @@ function overlaySheet(base: DashboardData, leads: LeadRow[]): DashboardData {
       leadsToday: today,
       leadsYesterday: yesterday,
     },
+    projection: {
+      ...base.projection,
+      leadsCurrent: total,
+      leadsProjected,
+      onPace: leadsProjected >= base.projection.leadsGoal,
+    },
+    phases: base.phases.map((p) =>
+      p.id === "captacao"
+        ? { ...p, leads: total, cpl: total ? +(spend / total).toFixed(2) : 0 }
+        : p,
+    ),
     daily,
     sources: sourceBreakdown(leads),
     recentLeads: sorted.slice(0, 25),
