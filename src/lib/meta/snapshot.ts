@@ -111,8 +111,6 @@ export function buildSnapshot(
       ctr: impressions ? +((clicks / impressions) * 100).toFixed(2) : 0,
       leads,
       cpl: +(c.spend / leads).toFixed(2),
-      realLeads: Math.round(leads * 0.97),
-      realCpl: +(c.spend / Math.max(Math.round(leads * 0.97), 1)).toFixed(2),
     };
   });
 
@@ -340,15 +338,12 @@ export function buildSnapshot(
         ctr: impressions ? +((clicks / impressions) * 100).toFixed(2) : 0,
         leads,
         cpl: +(spend / leads).toFixed(2),
-        realLeads: Math.round(leads * 0.97),
-        realCpl: +(spend / Math.max(Math.round(leads * 0.97), 1)).toFixed(2),
       });
       [0.55, 0.45].forEach((f2, j) => {
         const aSpend = +(spend * f2).toFixed(2);
         const aImpr = Math.round(impressions * f2);
         const aClk = Math.round(clicks * f2);
         const aLeads = Math.max(1, Math.round(leads * f2));
-        const aReal = Math.max(1, Math.round(aLeads * 0.97));
         ads.push({
           id: `${asId}_ad${j}`,
           name: `${AD_SUFFIX[(j + ads.length) % AD_SUFFIX.length]} — ${c.temperature}`,
@@ -359,8 +354,6 @@ export function buildSnapshot(
           ctr: aImpr ? +((aClk / aImpr) * 100).toFixed(2) : 0,
           leads: aLeads,
           cpl: +(aSpend / aLeads).toFixed(2),
-          realLeads: aReal,
-          realCpl: +(aSpend / aReal).toFixed(2),
         });
       });
     });

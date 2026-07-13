@@ -28,28 +28,42 @@ function normName(s?: string): string {
     .replace(/[^a-z0-9]/g, "");
 }
 
-function nameMatch(entityNorm: string, valNorm: string): boolean {
-  if (valNorm.length < 4 || entityNorm.length < 4) return false;
-  return entityNorm === valNorm || entityNorm.includes(valNorm) || valNorm.includes(entityNorm);
-}
-
 type LeadGetter = (l: LeadRow) => string;
 
-/** Real leads per entity. Uses `forced` field if given, else picks the UTM
-    field (among getters) that produces the most matches. */
-function crossMatch(
+/** Real leads per UNIQUE entity name. Each lead is assigned to AT MOST ONE
+    entity (exact normalized name, else an unambiguous prefix), so counts never
+    double-count. Picks the UTM field (among getters) that matches the most. */
+function realLeadsByName(
   entities: { name: string }[],
   leads: LeadRow[],
   getters: LeadGetter[],
-): number[] {
-  const entityNorms = entities.map((e) => normName(e.name));
-  let best = entities.map(() => 0);
+): Map<string, number> {
+  const uniqueNorms = Array.from(new Set(entities.map((e) => normName(e.name)))).filter(
+    (n) => n.length >= 3,
+  );
+  const nameSet = new Set(uniqueNorms);
+
+  const assign = (v: string): string | null => {
+    if (v.length < 3) return null;
+    if (nameSet.has(v)) return v; // exact match
+    // unambiguous prefix (e.g. utm "ad08" → entity "ad08copy") — only if 1 candidate
+    const cands = uniqueNorms.filter((n) => n.startsWith(v) || v.startsWith(n));
+    if (cands.length === 1 && Math.min(cands[0].length, v.length) >= 4) return cands[0];
+    return null;
+  };
+
+  let best = new Map<string, number>(uniqueNorms.map((n) => [n, 0]));
   let bestTotal = -1;
   for (const get of getters) {
-    const vals = leads.map((l) => normName(get(l))).filter((v) => v.length >= 4);
-    if (!vals.length) continue;
-    const counts = entityNorms.map((en) => vals.filter((v) => nameMatch(en, v)).length);
-    const total = counts.reduce((a, b) => a + b, 0);
+    const counts = new Map<string, number>(uniqueNorms.map((n) => [n, 0]));
+    let total = 0;
+    for (const l of leads) {
+      const key = assign(normName(get(l)));
+      if (key) {
+        counts.set(key, (counts.get(key) || 0) + 1);
+        total++;
+      }
+    }
     if (total > bestTotal) {
       bestTotal = total;
       best = counts;
@@ -104,7 +118,9 @@ function aggregateByName(rows: AdEntityRow[]): AdEntityRow[] {
     e.spend += r.spend;
     e.impressions += r.impressions;
     e.leads += r.leads;
-    e.realLeads = (e.realLeads ?? 0) + (r.realLeads ?? 0);
+    // realLeads is already a per-NAME count (same across duplicate-name rows),
+    // so take it once — summing would double-count.
+    e.realLeads = Math.max(e.realLeads ?? 0, r.realLeads ?? 0);
     e._ctrImpr += r.ctr * r.impressions;
     if (r.campaign) e._camps.add(r.campaign);
     if (!e.thumbnail && r.thumbnail) e.thumbnail = r.thumbnail;
@@ -138,12 +154,12 @@ function withRealCpl<T extends { name: string; spend: number }>(
   leads: LeadRow[],
   getters: LeadGetter[],
 ): (T & { realLeads: number; realCpl: number })[] {
-  const counts = crossMatch(entities, leads, getters);
-  return entities.map((e, i) => ({
-    ...e,
-    realLeads: counts[i],
-    realCpl: counts[i] ? +(e.spend / counts[i]).toFixed(2) : 0,
-  }));
+  // count per UNIQUE name (a lead counts once), then apply to each row by name
+  const counts = realLeadsByName(entities, leads, getters);
+  return entities.map((e) => {
+    const c = counts.get(normName(e.name)) || 0;
+    return { ...e, realLeads: c, realCpl: c ? +(e.spend / c).toFixed(2) : 0 };
+  });
 }
 
 function overlayMeta(base: DashboardData, m: MetaMetrics): DashboardData {

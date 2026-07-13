@@ -1,5 +1,6 @@
 import { fetchSheetLeads, isSheetsConfigured } from "@/lib/sheets/leads";
 import { fetchMetaMetrics, isMetaConfigured } from "@/lib/meta/client";
+import { isPaidLead } from "@/lib/classify";
 import type { LeadRow } from "@/lib/meta/types";
 
 export const dynamic = "force-dynamic";
@@ -41,42 +42,34 @@ export async function GET() {
     return Response.json({ error: `Falha ao ler a planilha: ${String(e)}` });
   }
 
-  let metaNames: string[] = [];
   let campaignNames: string[] = [];
+  let adsetNames: string[] = [];
+  let adNames: string[] = [];
   if (isMetaConfigured()) {
     try {
       const m = await fetchMetaMetrics();
       campaignNames = m.campaigns.map((c) => c.name);
-      metaNames = [...m.campaigns, ...m.adsets, ...m.ads].map((e) => e.name);
+      adsetNames = Array.from(new Set(m.adsets.map((e) => e.name)));
+      adNames = Array.from(new Set(m.ads.map((e) => e.name)));
     } catch {
       /* ignore */
     }
   }
-  const metaNorms = metaNames.map(normName).filter((n) => n.length >= 5);
 
-  const isPaid = (l: LeadRow) => {
-    const vals = [l.campaign, l.term, l.content, l.medium, l.source]
-      .map(normName)
-      .filter((v) => v.length >= 4);
-    return vals.some((v) => metaNorms.some((en) => en.includes(v) || v.includes(en)));
-  };
+  // paid vs organic (regra: email = orgânico)
+  const paid = leads.filter((l) => isPaidLead(l.source, l.medium)).length;
 
-  const paid = leads.filter(isPaid).length;
-  const unmatchedSample = leads
-    .filter((l) => !isPaid(l))
-    .slice(0, 8)
-    .map((l) => ({
-      source: l.source,
-      medium: l.medium,
-      campaign: l.campaign,
-      term: l.term,
-      content: l.content,
-    }));
+  // quantos leads casam exatamente com um nome de anúncio (por utm_content/term)
+  const adSet = new Set(adNames.map(normName));
+  const matchedAds = leads.filter(
+    (l) => adSet.has(normName(l.content)) || adSet.has(normName(l.term)),
+  ).length;
 
   return Response.json(
     {
       totalLeads: leads.length,
-      classificacao: { pago: paid, organico: leads.length - paid },
+      classificacao_pago_organico: { pago: paid, organico: leads.length - paid },
+      leadsQueCasamComAnuncio: matchedAds,
       valoresDistintos: {
         utm_source: topValues(leads, (l) => l.source),
         utm_medium: topValues(leads, (l) => l.medium),
@@ -85,7 +78,8 @@ export async function GET() {
         utm_content: topValues(leads, (l) => l.content),
       },
       metaCampanhas: campaignNames.slice(0, 20),
-      exemplosNaoCasados: unmatchedSample,
+      metaConjuntos: adsetNames.slice(0, 20),
+      metaAnuncios: adNames.slice(0, 30),
     },
     { headers: { "cache-control": "no-store" } },
   );
