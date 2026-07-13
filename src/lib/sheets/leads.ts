@@ -16,13 +16,21 @@ function sheetUrl(): string | undefined {
   if (process.env.GOOGLE_SHEET_CSV_URL) return process.env.GOOGLE_SHEET_CSV_URL;
   const id = process.env.GOOGLE_SHEET_ID;
   if (!id) return undefined;
-  const base = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`;
-  // Prefer a tab name when provided (e.g. "[IMERSÃO GIS][JUL26] Trackeamento de Lançamento"),
-  // otherwise fall back to a numeric gid.
+  // The /export endpoint returns the ENTIRE tab verbatim (no header detection,
+  // no typing, and — crucially — it does NOT stop at a blank row in the middle,
+  // unlike gviz). It needs the numeric gid of the tab.
+  const gid = process.env.GOOGLE_SHEET_GID;
+  if (gid) {
+    return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`;
+  }
+  // Fallback: gviz by tab name (headers=1 forces a single header row).
   const tab = process.env.GOOGLE_SHEET_TAB;
-  if (tab) return `${base}&sheet=${encodeURIComponent(tab)}`;
-  const gid = process.env.GOOGLE_SHEET_GID || "0";
-  return `${base}&gid=${gid}`;
+  if (tab) {
+    return `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(
+      tab,
+    )}`;
+  }
+  return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=0`;
 }
 
 export function isSheetsConfigured(): boolean {
