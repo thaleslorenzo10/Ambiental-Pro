@@ -195,6 +195,8 @@ export interface AdEntityRow {
   cpl: number;
   realLeads?: number;
   realCpl?: number;
+  thumbnail?: string; // URL da imagem do criativo (anúncios)
+  permalink?: string; // link da postagem no Instagram/Facebook
 }
 
 export interface DashboardTotals {

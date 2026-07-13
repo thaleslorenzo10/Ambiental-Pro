@@ -133,6 +133,16 @@ interface Row {
   actions?: Action[];
 }
 
+interface Creative {
+  id: string;
+  creative?: {
+    thumbnail_url?: string;
+    image_url?: string;
+    instagram_permalink_url?: string;
+    effective_object_story_id?: string;
+  };
+}
+
 const TAG_FILTER = (tag: string) =>
   JSON.stringify([{ field: "campaign.name", operator: "CONTAIN", value: tag }]);
 
@@ -215,7 +225,7 @@ export async function fetchMetaMetrics(datePreset = "maximum"): Promise<MetaMetr
   ]);
 
   // Optional richer breakdowns — never break the dashboard if they fail.
-  const [adsetRes, adRes, placementRes, countryRes, demoRes] = await Promise.all([
+  const [adsetRes, adRes, placementRes, countryRes, demoRes, creativeRes] = await Promise.all([
     safe(
       () =>
         graph<{ data: Row[] }>(`${account}/insights`, {
@@ -273,6 +283,17 @@ export async function fetchMetaMetrics(datePreset = "maximum"): Promise<MetaMetr
           limit: "100",
         }),
       { data: [] as Row[] },
+    ),
+    // Ad creatives → thumbnail image + Instagram/Facebook permalink
+    safe(
+      () =>
+        graph<{ data: Creative[] }>(`${account}/ads`, {
+          fields:
+            "id,creative{thumbnail_url,image_url,instagram_permalink_url,effective_object_story_id}",
+          filtering,
+          limit: "500",
+        }),
+      { data: [] as Creative[] },
     ),
   ]);
 
@@ -365,7 +386,26 @@ export async function fetchMetaMetrics(datePreset = "maximum"): Promise<MetaMetr
   ];
 
   const adsets = adsetRes.data.map((r) => entityRow(r, "adset")).sort((a, b) => b.spend - a.spend);
-  const ads = adRes.data.map((r) => entityRow(r, "ad")).sort((a, b) => b.spend - a.spend);
+  const thumbById = new Map<string, string>();
+  const linkById = new Map<string, string>();
+  for (const c of creativeRes.data) {
+    const url = c.creative?.thumbnail_url || c.creative?.image_url;
+    if (c.id && url) thumbById.set(c.id, url);
+    const link =
+      c.creative?.instagram_permalink_url ||
+      (c.creative?.effective_object_story_id
+        ? `https://www.facebook.com/${c.creative.effective_object_story_id}`
+        : undefined);
+    if (c.id && link) linkById.set(c.id, link);
+  }
+  const ads = adRes.data
+    .map((r) => {
+      const row = entityRow(r, "ad");
+      const thumb = r.ad_id ? thumbById.get(r.ad_id) : undefined;
+      const link = r.ad_id ? linkById.get(r.ad_id) : undefined;
+      return { ...row, ...(thumb ? { thumbnail: thumb } : {}), ...(link ? { permalink: link } : {}) };
+    })
+    .sort((a, b) => b.spend - a.spend);
 
   // Placement breakdown (aggregate platform_position values into friendly labels)
   const placeMap = new Map<string, PlacementBreakdown>();

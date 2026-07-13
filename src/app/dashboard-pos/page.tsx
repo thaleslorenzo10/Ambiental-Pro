@@ -133,6 +133,7 @@ export default async function DashboardPos({
           hint="Criativos acumulados · ordenados por CPL real"
           rows={data.ads}
           showCampaign
+          showThumb
         />
       </section>
 

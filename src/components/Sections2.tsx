@@ -423,11 +423,13 @@ export function AdEntityTable({
   hint,
   rows,
   showCampaign = false,
+  showThumb = false,
 }: {
   title: string;
   hint: string;
   rows: AdEntityRow[];
   showCampaign?: boolean;
+  showThumb?: boolean;
 }) {
   return (
     <Card>
@@ -436,7 +438,7 @@ export function AdEntityTable({
         <table className="w-full min-w-[820px] text-left text-sm">
           <thead className="sticky top-0 bg-white text-[11px] uppercase tracking-wide text-slate-400">
             <tr className="border-b border-slate-100">
-              <th className="pb-2 pr-4 font-medium">Nome</th>
+              <th className="pb-2 pr-4 font-medium">{showThumb ? "Criativo" : "Nome"}</th>
               <th className="pb-2 pr-4 font-medium">Temp.</th>
               <th className="pb-2 pr-4 text-right font-medium">Investido</th>
               <th className="pb-2 pr-4 text-right font-medium">CTR</th>
@@ -448,11 +450,49 @@ export function AdEntityTable({
           <tbody className="divide-y divide-slate-50">
             {rows.map((r) => (
               <tr key={r.id} className="text-slate-700 hover:bg-slate-50/60">
-                <td className="max-w-[240px] py-2.5 pr-4 font-medium text-slate-800">
-                  <div className="truncate">{r.name}</div>
-                  {showCampaign && r.campaign && (
-                    <div className="truncate text-[11px] text-slate-400">{r.campaign}</div>
-                  )}
+                <td className="max-w-[260px] py-2.5 pr-4 font-medium text-slate-800">
+                  <div className="flex items-center gap-2.5">
+                    {showThumb &&
+                      (r.thumbnail ? (
+                        r.permalink ? (
+                          <a href={r.permalink} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={r.thumbnail}
+                              alt=""
+                              className="h-10 w-10 rounded-md border border-slate-200 object-cover transition hover:ring-2 hover:ring-pink-300"
+                            />
+                          </a>
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={r.thumbnail}
+                            alt=""
+                            className="h-10 w-10 shrink-0 rounded-md border border-slate-200 object-cover"
+                          />
+                        )
+                      ) : (
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-300">
+                          🖼️
+                        </div>
+                      ))}
+                    <div className="min-w-0">
+                      <div className="truncate">{r.name}</div>
+                      {showCampaign && r.campaign && (
+                        <div className="truncate text-[11px] text-slate-400">{r.campaign}</div>
+                      )}
+                      {showThumb && r.permalink && (
+                        <a
+                          href={r.permalink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-medium text-pink-600 hover:underline"
+                        >
+                          ↗ ver no Instagram
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </td>
                 <td className="py-2.5 pr-4">
                   {r.temperature === "HOT" ? (
@@ -638,11 +678,38 @@ export function CreativesToScale({ ads }: { ads: AdEntityRow[] }) {
 
   const Row = ({ a, good }: { a: AdEntityRow; good: boolean }) => (
     <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 bg-white px-3 py-2">
-      <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-slate-800">{a.name}</p>
-        <p className="truncate text-[11px] text-slate-400">
-          {num(leadsOf(a))} leads · {money(a.spend)}
-        </p>
+      <div className="flex min-w-0 items-center gap-2.5">
+        {a.thumbnail ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={a.thumbnail}
+            alt=""
+            className="h-9 w-9 shrink-0 rounded-md border border-slate-200 object-cover"
+          />
+        ) : (
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-300">
+            🖼️
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-slate-800">{a.name}</p>
+          <p className="truncate text-[11px] text-slate-400">
+            {num(leadsOf(a))} leads · {money(a.spend)}
+            {a.permalink ? (
+              <>
+                {" · "}
+                <a
+                  href={a.permalink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-pink-600 hover:underline"
+                >
+                  ver post
+                </a>
+              </>
+            ) : null}
+          </p>
+        </div>
       </div>
       <span className={`shrink-0 text-sm font-bold tnum ${good ? "text-emerald-600" : "text-rose-600"}`}>
         {money2(metric(a))}

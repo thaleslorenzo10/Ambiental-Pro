@@ -107,6 +107,8 @@ function aggregateByName(rows: AdEntityRow[]): AdEntityRow[] {
     e.realLeads = (e.realLeads ?? 0) + (r.realLeads ?? 0);
     e._ctrImpr += r.ctr * r.impressions;
     if (r.campaign) e._camps.add(r.campaign);
+    if (!e.thumbnail && r.thumbnail) e.thumbnail = r.thumbnail;
+    if (!e.permalink && r.permalink) e.permalink = r.permalink;
     if (r.spend > e._topSpend) {
       e._topSpend = r.spend;
       e.temperature = r.temperature;
@@ -125,6 +127,8 @@ function aggregateByName(rows: AdEntityRow[]): AdEntityRow[] {
       cpl: e.leads ? +(e.spend / e.leads).toFixed(2) : 0,
       realLeads: e.realLeads,
       realCpl: e.realLeads ? +(e.spend / e.realLeads).toFixed(2) : 0,
+      thumbnail: e.thumbnail,
+      permalink: e.permalink,
     }))
     .sort((a, b) => b.spend - a.spend);
 }
